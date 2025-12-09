@@ -1,0 +1,10 @@
+{
+  "findSymbolDefinition": {
+    "k8s": {
+      "git": "https://github.com/kubernetes/kubernetes.git",
+      "commit": "03e14cc9432975dec161de1e52d7010f9711a913",
+      "current": "cmd/kubectl/kubectl.go",
+      "symbol": "genMarkdown"
+    }
+  }
+}
