@@ -16,6 +16,7 @@ import Control.Concurrent.STM.TQueue (newTQueueIO, tryReadTQueue, writeTQueue)
 import Control.Concurrent.STM.TVar (modifyTVar', newTVarIO, readTVar, readTVarIO)
 import Control.Monad (forM, guard, when)
 import Data.List (partition)
+import Data.Maybe (isNothing)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
@@ -63,6 +64,7 @@ recurseDirectory filterby dir = do
         (mnext, cpending) <- atomically $ do
           mnext <- tryReadTQueue queue
           cpending <- readTVar pending
+          when (isNothing mnext && cpending > 0) retry
           return (mnext, cpending)
 
         case mnext of
