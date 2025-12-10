@@ -18,7 +18,7 @@ fi
 
 case_name="$1"
 shift
-irk_flags="$@"
+irk_flags="$*"
 root_dir="$(pwd)"
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 json_file="$script_dir/benchmark.json"

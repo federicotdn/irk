@@ -14,7 +14,7 @@ import Control.Concurrent.Async (replicateConcurrently_)
 import Control.Concurrent.STM (atomically, retry)
 import Control.Concurrent.STM.TQueue (flushTQueue, newTQueueIO, tryReadTQueue, writeTQueue)
 import Control.Concurrent.STM.TVar (modifyTVar', newTVarIO, readTVar)
-import Control.Monad (forM, guard, when)
+import Control.Monad (forM, guard, unless, when)
 import Data.List (partition)
 import Data.Maybe (isNothing)
 import Data.Text (Text)
@@ -70,29 +70,23 @@ recurseDirectory filterby dir = do
         case mnext of
           Nothing -> pure ()
           Just (depth, next) -> do
-            if baseFilter depth next True && filterby depth next True
-              then do
-                entries <- listDirectory next
-                entries' <- forM entries $ \e -> do
-                  let path = next `joinPaths` e
-                  isDir <- doesDirectoryExist path
-                  return (isDir, path)
+            entries <- listDirectory next
+            entries' <- forM entries $ \e -> do
+              let path = next `joinPaths` e
+              isDir <- doesDirectoryExist path
+              return (isDir, path)
 
-                let depth' = depth + 1
-                let (p1, p2) = partition fst entries'
-                let directories = map snd p1
-                let files = filter (\f -> baseFilter depth' f False && filterby depth' f False) (map snd p2)
+            let depth' = depth + 1
+            let (p1, p2) = partition fst entries'
+            let directories = filter (\d -> baseFilter depth' d True && filterby depth' d True) (map snd p1)
+            let files = filter (\f -> baseFilter depth' f False && filterby depth' f False) (map snd p2)
 
-                atomically $ do
-                  mapM_ (writeTQueue results) files
-                  mapM_ (writeTQueue queue . (,) depth') directories
-                  -- The -1 here is from the fact that we have already
-                  -- processed a value we removed ('mnext').
-                  modifyTVar' pending (+ (length directories - 1))
-              else do
-                atomically $ do
-                  -- Same here.
-                  modifyTVar' pending (+ (-1))
+            atomically $ do
+              unless (null files) $ mapM_ (writeTQueue results) files
+              unless (null directories) $ mapM_ (writeTQueue queue . (,) depth') directories
+              -- The -1 here is from the fact that we have already
+              -- processed a value we removed ('mnext').
+              modifyTVar' pending (+ (length directories - 1))
 
         when (cpending > 0) worker
 
