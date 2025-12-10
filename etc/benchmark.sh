@@ -23,11 +23,15 @@ shift
 cabal_extra_flags=""
 irk_flags=""
 rts_flags=""
+parse_irk_flags=false
 for arg in "$@"; do
-    if [ "$arg" = "--profile" ]; then
+    if [ "$arg" = "--" ]; then
+        parse_irk_flags=true
+    elif [ "$arg" = "--profile" ]; then
         cabal_extra_flags="--enable-profiling --ghc-options=\"-fprof-late\""
         rts_flags="+RTS -p"
-    else
+        require_cmd profiteur
+    elif [ "$parse_irk_flags" = true ]; then
         irk_flags="$irk_flags $arg"
     fi
 done
@@ -99,6 +103,8 @@ hyperfine --warmup 2 "$cmd"
 # Move profile file if profiling was enabled
 if [ -n "$rts_flags" ] && [ -f "irk.prof" ]; then
     timestamp=$(date +"%Y%m%d-%H%M%S")
-    mv irk.prof "irk.$timestamp.prof"
-    echo "Profile saved to irk.$timestamp.prof"
+    newname="irk.$timestamp.prof"
+    mv irk.prof "$newname"
+    echo "Profile saved to $newname"
+    profiteur "$newname"
 fi
