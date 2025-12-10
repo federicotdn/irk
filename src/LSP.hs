@@ -30,7 +30,7 @@ import Data.Aeson (FromJSON (parseJSON), Options (..), Result (..), ToJSON (toEn
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Lazy as BSL
-import qualified Data.ByteString.Lazy.UTF8 as BSLU
+import qualified Data.ByteString.Lazy.Char8 as BLC
 import Data.Char (isSpace, toLower)
 import Data.List (dropWhileEnd, find, isPrefixOf)
 import Data.Maybe (fromMaybe)
@@ -390,7 +390,7 @@ writeMessage msg = do
   let encoded = encode msg
   let len = BSL.length encoded
   putStr $ headerContentLength ++ ": " ++ show len ++ "\r\n\r\n"
-  putStr $ BSLU.toString encoded
+  BLC.putStr encoded
 
 jsonGet :: (FromJSON a) => Value -> String -> Maybe a
 jsonGet val key = case val of

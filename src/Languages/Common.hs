@@ -10,8 +10,12 @@ module Languages.Common
 where
 
 import Control.Concurrent (getNumCapabilities)
-import Control.Concurrent.Async (concurrently)
-import Control.Monad (guard)
+import Control.Concurrent.Async (replicateConcurrently_)
+import Control.Concurrent.STM (atomically, retry)
+import Control.Concurrent.STM.TQueue (newTQueueIO, tryReadTQueue, writeTQueue)
+import Control.Concurrent.STM.TVar (modifyTVar', newTVarIO, readTVar, readTVarIO)
+import Control.Monad (forM, guard, when)
+import Data.List (partition)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
@@ -21,7 +25,7 @@ import System.OsString (OsString, isSuffixOf)
 import Text.Megaparsec (Parsec, atEnd, optional, parse, takeWhileP, try)
 import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Pos (SourcePos, sourceColumn, sourceLine, unPos)
-import Utils (FilePos (..), extractLine, oss, splitList)
+import Utils (FilePos (..), extractLine, oss)
 
 type Parser = Parsec Void Text
 
@@ -46,41 +50,61 @@ joinPaths :: OsPath -> OsPath -> OsPath
 joinPaths p1 p2 = mconcat [p1, sep, p2]
 {-# INLINE joinPaths #-}
 
-recurseDirectory :: Int -> PathFilter -> OsPath -> IO [OsPath]
-recurseDirectory depth filterby dir = do
-  isDir <- doesDirectoryExist dir
-  let process = baseFilter depth dir isDir && filterby depth dir isDir
-  if isDir && process
-    then do
-      listing <- listDirectory dir
-      capa <- getNumCapabilities
-      -- Max. possible of active threads searching at this depth
-      let maxCurrThreads = 2 ^ depth :: Int
-      let paths = map (dir `joinPaths`) listing
-      let depth' = depth + 1
-      -- Only use parallelism (two threads) if:
-      -- - We have currently not exceeded (probably) #getNumCapabilities threads
-      -- - The list of paths contains two or more items
-      sublistings <-
-        if maxCurrThreads < capa && length paths > 1
-          then do
-            let (pathsA, pathsB) = splitList paths
-            (r1, r2) <-
-              concurrently
-                (recurseDirectoriesInner depth' filterby pathsA)
-                (recurseDirectoriesInner depth' filterby pathsB)
-            return [r1, r2]
-          else mapM (recurseDirectory depth' filterby) paths
-      return $ concat sublistings
-    else if process then return [dir] else return []
+recurseDirectory :: PathFilter -> OsPath -> IO [OsPath]
+recurseDirectory filterby dir = do
+  queue <- newTQueueIO
+  pending <- newTVarIO (1 :: Int)
+  results <- newTVarIO []
+  capa <- getNumCapabilities
+
+  atomically $ writeTQueue queue (0 :: Int, dir)
+
+  let worker = do
+        (mnext, cpending) <- atomically $ do
+          mnext <- tryReadTQueue queue
+          cpending <- readTVar pending
+          return (mnext, cpending)
+
+        case mnext of
+          Nothing -> pure ()
+          Just (depth, next) -> do
+            if baseFilter depth next True && filterby depth next True
+              then do
+                entries <- listDirectory next
+                entries' <- forM entries $ \e -> do
+                  let path = next `joinPaths` e
+                  isDir <- doesDirectoryExist path
+                  return (isDir, path)
+
+                let depth' = depth + 1
+                let (p1, p2) = partition fst entries'
+                let directories = map snd p1
+                let files = filter (\f -> baseFilter depth' f False && filterby depth' f False) (map snd p2)
+
+                atomically $ do
+                  modifyTVar' results (files ++)
+                  mapM_ (writeTQueue queue . (,) depth') directories
+                  -- The -1 here is from the fact that we have already
+                  -- processed a value we removed ('mnext').
+                  modifyTVar' pending (+ (length directories - 1))
+              else do
+                atomically $ do
+                  -- Same here.
+                  modifyTVar' pending (+ (-1))
+
+        when (cpending > 0) worker
+
+  replicateConcurrently_ capa worker
+
+  atomically $ do
+    p <- readTVar pending
+    when (p > 0) retry
+
+  readTVarIO results
 {-# INLINE recurseDirectory #-}
 
-recurseDirectoriesInner :: Int -> PathFilter -> [OsPath] -> IO [OsPath]
-recurseDirectoriesInner depth filterby dirs = concat <$> mapM (recurseDirectory depth filterby) dirs
-{-# INLINE recurseDirectoriesInner #-}
-
 recurseDirectories :: PathFilter -> [OsPath] -> IO [OsPath]
-recurseDirectories filterby dirs = concat <$> mapM (recurseDirectory 0 filterby) dirs
+recurseDirectories filterby dirs = concat <$> mapM (recurseDirectory filterby) dirs
 {-# INLINE recurseDirectories #-}
 
 skipLine :: Parser ()

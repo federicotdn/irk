@@ -1,10 +1,34 @@
 {
-  "findSymbolDefinition": {
+  "repos": {
     "k8s": {
       "git": "https://github.com/kubernetes/kubernetes.git",
-      "commit": "03e14cc9432975dec161de1e52d7010f9711a913",
+      "commit": "03e14cc9432975dec161de1e52d7010f9711a913"
+    },
+    "wikiquote": {
+      "git": "https://github.com/federicotdn/wikiquote.git",
+      "commit": "2ded998e4f7c5f08e0c66bd34c747a6842a2aedb"
+    }
+  },
+  "findSymbolDefinition": {
+    "k8s": {
+      "repo": "k8s",
       "current": "cmd/kubectl/kubectl.go",
       "symbol": "genMarkdown"
+    },
+    "k8s-vendor": {
+      "repo": "k8s",
+      "current": "cmd/kubectl/kubectl.go",
+      "symbol": "IgnoreTopFunction"
+    },
+    "k8s-notfound": {
+      "repo": "k8s",
+      "current": "cmd/kubectl/kubectl.go",
+      "symbol": "ThisSymbolDoesNotExist"
+    },
+    "wq": {
+      "repo": "wikiquote",
+      "current": "wikiquote/__init__.py",
+      "symbol": "quote_of_the_day"
     }
   }
 }

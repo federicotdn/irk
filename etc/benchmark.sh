@@ -6,17 +6,19 @@ require_cmd() {
 }
 
 require_cmd jq
+require_cmd git
 require_cmd hyperfine
-require_cmd rg
 
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <case-name>" >&2
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <case-name> [--flags...]" >&2
     echo "Available cases:" >&2
     jq -r '.findSymbolDefinition | keys[]' "$(dirname "$0")/benchmark.json" >&2
     exit 1
 fi
 
 case_name="$1"
+shift
+irk_flags="$@"
 root_dir="$(pwd)"
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 json_file="$script_dir/benchmark.json"
@@ -29,10 +31,19 @@ if [ "$scenario" = "null" ]; then
     exit 1
 fi
 
-git_url=$(echo "$scenario" | jq -r '.git')
-commit=$(echo "$scenario" | jq -r '.commit')
+repo_id=$(echo "$scenario" | jq -r '.repo')
 current=$(echo "$scenario" | jq -r '.current')
 symbol=$(echo "$scenario" | jq -r '.symbol')
+
+# Read repo info
+repo_info=$(jq -r ".repos[\"$repo_id\"]" "$json_file")
+if [ "$repo_info" = "null" ]; then
+    echo "error: repo '$repo_id' not found in benchmark.json" >&2
+    exit 1
+fi
+
+git_url=$(echo "$repo_info" | jq -r '.git')
+commit=$(echo "$repo_info" | jq -r '.commit')
 
 repo_name=$(basename "$git_url" .git)
 repo_path="$repos_dir/$repo_name"
@@ -62,16 +73,12 @@ cd "$root_dir"
 make install
 
 active_file="$repo_path/$current"
-ext="${active_file##*.}"
 
 echo ""
 echo "Running irk..."
-cmd="irk search '$active_file' '$repo_path' '$symbol'"
+cmd="irk search '$active_file' '$repo_path' '$symbol' $irk_flags"
 bash -c "$cmd"
 
 echo ""
 echo "Running irk benchmark..."
 hyperfine --warmup 2 "$cmd"
-
-echo "Running ripgrep benchmark..."
-hyperfine -i --warmup 2 "rg -g '*.$ext' '$symbol' '$repo_path'"

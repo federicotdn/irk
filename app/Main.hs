@@ -18,7 +18,7 @@ main = do
       let srv = createServer ("--verbose" `elem` args)
       runServer srv
     "search" : _ -> do
-      runCLI (args !! 1) (args !! 2) (args !! 3)
+      runCLI (args !! 1) (args !! 2) (args !! 3) ("--walk-only" `elem` args)
     _ -> do
       ePutStrLn "irk: unknown command"
       exitWith (ExitFailure 1)

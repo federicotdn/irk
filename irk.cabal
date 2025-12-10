@@ -27,8 +27,8 @@ common shared-deps
                     , os-string ^>=2.0.8
                     , vector ^>=0.13.2
                     , bytestring ^>=0.12.2
+                    , stm ^>=2.5.3
                     -- Third party:
-                    , utf8-string ^>=1.0.2
                     , megaparsec ^>=9.7.0
                     , async ^>=2.2.5
     default-extensions:   OverloadedStrings

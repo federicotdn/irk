@@ -1,13 +1,12 @@
 module Irk where
 
-import Control.Concurrent.Async (forConcurrently)
 import Control.Monad (forM, join)
 import Data.Maybe (fromMaybe, maybeToList)
 import Data.Text (Text, isInfixOf)
 import Language (Language, lFindSymbolDefinition, lSearchPaths, lSymbolAtPosition)
 import System.OsPath (OsPath)
 import System.OsString (empty)
-import Utils (FileKind (..), FilePathKind (..), FilePos, Search (..), filePosWithPath, fileText, longestPrefix)
+import Utils (FileKind (..), FilePathKind (..), FilePos, Search (..), filePosWithPath, fileText, forConcurrentlyMax, longestPrefix)
 
 searchPaths :: Language -> Maybe OsPath -> [OsPath] -> [IO [FilePathKind]]
 searchPaths lang mcurrent workspaces =
@@ -44,14 +43,14 @@ findSymbolDefinitionInPaths lang symbol paths = do
       _ -> return []
   return $ join positions
   where
-    forFn = if length paths > 1 then forConcurrently else forM
+    forFn = if length paths > 1 then forConcurrentlyMax else forM
 
 findSymbolDefinition :: Language -> Text -> [IO [FilePathKind]] -> IO [FilePos]
 findSymbolDefinition lang symbol searches = do
   case searches of
     [] -> return []
     search : rest -> do
-      paths <- search
+      paths <- search -- Evaluate the file search now.
       positions <- findSymbolDefinitionInPaths lang symbol paths
       case positions of
         [] -> findSymbolDefinition lang symbol rest
