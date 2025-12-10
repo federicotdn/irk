@@ -12,7 +12,7 @@ where
 import Control.Concurrent (getNumCapabilities)
 import Control.Concurrent.Async (replicateConcurrently_)
 import Control.Concurrent.STM (atomically, retry)
-import Control.Concurrent.STM.TQueue (newTQueueIO, tryReadTQueue, writeTQueue)
+import Control.Concurrent.STM.TQueue (flushTQueue, newTQueueIO, tryReadTQueue, writeTQueue)
 import Control.Concurrent.STM.TVar (modifyTVar', newTVarIO, readTVar, readTVarIO)
 import Control.Monad (forM, guard, when)
 import Data.List (partition)
@@ -55,7 +55,7 @@ recurseDirectory :: PathFilter -> OsPath -> IO [OsPath]
 recurseDirectory filterby dir = do
   queue <- newTQueueIO
   pending <- newTVarIO (1 :: Int)
-  results <- newTVarIO []
+  results <- newTQueueIO
   capa <- getNumCapabilities
 
   atomically $ writeTQueue queue (0 :: Int, dir)
@@ -84,7 +84,7 @@ recurseDirectory filterby dir = do
                 let files = filter (\f -> baseFilter depth' f False && filterby depth' f False) (map snd p2)
 
                 atomically $ do
-                  modifyTVar' results (files ++)
+                  mapM_ (writeTQueue results) files
                   mapM_ (writeTQueue queue . (,) depth') directories
                   -- The -1 here is from the fact that we have already
                   -- processed a value we removed ('mnext').
@@ -101,8 +101,7 @@ recurseDirectory filterby dir = do
   atomically $ do
     p <- readTVar pending
     when (p > 0) retry
-
-  readTVarIO results
+    flushTQueue results
 {-# INLINE recurseDirectory #-}
 
 recurseDirectories :: PathFilter -> [OsPath] -> IO [OsPath]
