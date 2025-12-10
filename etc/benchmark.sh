@@ -18,7 +18,20 @@ fi
 
 case_name="$1"
 shift
-irk_flags="$*"
+
+# Parse flags
+cabal_extra_flags=""
+irk_flags=""
+rts_flags=""
+for arg in "$@"; do
+    if [ "$arg" = "--profile" ]; then
+        cabal_extra_flags="--enable-profiling --ghc-options=\"-fprof-late\""
+        rts_flags="+RTS -p"
+    else
+        irk_flags="$irk_flags $arg"
+    fi
+done
+
 root_dir="$(pwd)"
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 json_file="$script_dir/benchmark.json"
@@ -70,15 +83,22 @@ if [ "$current_commit" != "$commit" ]; then
 fi
 
 cd "$root_dir"
-make install
+make install CABAL_EXTRA_FLAGS="$cabal_extra_flags"
 
 active_file="$repo_path/$current"
 
 echo ""
 echo "Running irk..."
-cmd="irk search '$active_file' '$repo_path' '$symbol' $irk_flags"
+cmd="irk search '$active_file' '$repo_path' '$symbol' $irk_flags $rts_flags"
 bash -c "$cmd"
 
 echo ""
 echo "Running irk benchmark..."
 hyperfine --warmup 2 "$cmd"
+
+# Move profile file if profiling was enabled
+if [ -n "$rts_flags" ] && [ -f "irk.prof" ]; then
+    timestamp=$(date +"%Y%m%d-%H%M%S")
+    mv irk.prof "irk.$timestamp.prof"
+    echo "Profile saved to irk.$timestamp.prof"
+fi
