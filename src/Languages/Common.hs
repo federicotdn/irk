@@ -64,6 +64,9 @@ recurseDirectory filterby dir = do
         (mnext, cpending) <- atomically $ do
           mnext <- tryReadTQueue queue
           cpending <- readTVar pending
+          -- Worker did not get anything from the queue, but
+          -- there are still other workers processing directories.
+          -- There could be more work to do soon - retry.
           when (isNothing mnext && cpending > 0) retry
           return (mnext, cpending)
 
