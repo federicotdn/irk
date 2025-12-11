@@ -5,7 +5,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Languages.Common (Parser, PathFilter, hasAnyExtension, hasAnyFilename, recurseDirectories, searchForMatch, symbolAtPos)
 import System.OsPath (OsString)
-import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, (<|>))
+import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, (<|>), satisfy)
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Utils (FileKind (..), FilePathKind (..), FilePos, Search (..), filePathWithKind, os)
 
@@ -53,6 +53,7 @@ findTypeDef name = do
   _ <- hspace1
   pos <- getSourcePos
   _ <- string name
+  _ <- satisfy (`elem` [' ', '[', '='])
   return pos
 
 findFuncDef :: Text -> Parser SourcePos

@@ -37,3 +37,5 @@ func MyIdent9[T any](s []T) {
         fmt.Print(v)
     }
 }
+
+type myIdent7Fake = float
