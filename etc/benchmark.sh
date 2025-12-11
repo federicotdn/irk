@@ -28,9 +28,8 @@ for arg in "$@"; do
     if [ "$arg" = "--" ]; then
         parse_irk_flags=true
     elif [ "$arg" = "--profile" ]; then
-        cabal_extra_flags="--enable-profiling --ghc-options=\"-fprof-late\""
-        rts_flags="+RTS -p"
-        require_cmd profiteur
+        cabal_extra_flags="--enable-profiling"
+        rts_flags="+RTS -pj"
     elif [ "$parse_irk_flags" = true ]; then
         irk_flags="$irk_flags $arg"
     fi
@@ -106,5 +105,4 @@ if [ -n "$rts_flags" ] && [ -f "irk.prof" ]; then
     newname="irk.$timestamp.prof"
     mv irk.prof "$newname"
     echo "Profile saved to $newname"
-    profiteur "$newname"
 fi
