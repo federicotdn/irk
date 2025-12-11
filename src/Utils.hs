@@ -11,14 +11,10 @@ module Utils
     filePathWithKind,
     os,
     oss,
-    splitInto,
     longestPrefix,
-    forConcurrentlyMax,
   )
 where
 
-import Control.Concurrent (getNumCapabilities)
-import Control.Concurrent.Async (mapConcurrently)
 import qualified Data.ByteString as BS
 import Data.Function (on)
 import Data.List (maximumBy)
@@ -91,20 +87,3 @@ longestPrefix path prefixes =
   case filter (`isPrefixOf` path) prefixes of
     [] -> Nothing
     matches -> Just $ maximumBy (compare `on` OS.length) matches
-
-splitInto :: Int -> [a] -> [[a]]
-splitInto n xs = go n (length xs) xs
-  where
-    go _ _ [] = []
-    go 1 _ ys = [ys]
-    go m len ys =
-      let chunkSize = (len + m - 1) `div` m
-          (chunk, rest) = splitAt chunkSize ys
-       in chunk : go (m - 1) (len - length chunk) rest
-
-forConcurrentlyMax :: [a] -> (a -> IO b) -> IO [b]
-forConcurrentlyMax elems f = do
-  capa <- getNumCapabilities
-  let parts = splitInto capa elems
-  results <- mapConcurrently (mapM f) parts
-  return $ concat results
