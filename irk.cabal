@@ -33,11 +33,16 @@ common shared-deps
                     , async ^>=2.2.5
     default-extensions:   OverloadedStrings
                         , DeriveGeneric
+                        , CApiFFI
     default-language: Haskell2010
 
 library
     import:           warnings
                     , shared-deps
+    c-sources:        cbits/infix.c
+    include-dirs:     cbits
+    install-includes: infix.h
+    cc-options:       -mavx2
     exposed-modules:  Irk
                     , Server
                     , CLI
@@ -49,6 +54,7 @@ library
                     , Languages.Go
                     , Languages.C
                     , Utils
+                    , Infix
     hs-source-dirs:   src
 
 executable irk
@@ -69,6 +75,7 @@ test-suite test-irk
                     , LSPSpec
                     , LanguageSpec
                     , UtilsSpec
+                    , InfixSpec
                     , Testing
     hs-source-dirs:   test
     build-depends:    irk

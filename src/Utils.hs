@@ -1,6 +1,7 @@
 module Utils
   ( ePutStrLn,
     fileText,
+    fileByteString,
     extractLine,
     FileKind (..),
     FilePathKind (..),
@@ -66,13 +67,18 @@ filePathWithKind k path = FilePathKind path k
 ePutStrLn :: String -> IO ()
 ePutStrLn = hPutStrLn stderr
 
-fileText :: OsPath -> IO (Maybe Text)
-fileText path = do
+fileByteString :: OsPath -> IO (Maybe BS.ByteString)
+fileByteString path = do
   path' <- decodeUtf path
   result <- tryIOError (BS.readFile path')
   case result of
-    Right content -> return $ Just (TE.decodeUtf8Lenient content)
+    Right content -> return $ Just content
     Left _ -> return Nothing
+
+fileText :: OsPath -> IO (Maybe Text)
+fileText path = do
+  contents <- fileByteString path
+  return (TE.decodeUtf8Lenient <$> contents)
 
 -- TODO: Fix splitAt assuming UTF32
 extractLine :: Text -> FilePos -> Maybe (Text, Text)

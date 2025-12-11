@@ -1,5 +1,6 @@
 module Main (main) where
 
+import qualified InfixSpec
 import qualified IrkSpec
 import qualified LSPSpec
 import qualified LanguageSpec
@@ -17,3 +18,4 @@ spec = do
   describe "LSP" LSPSpec.spec
   describe "Language" LanguageSpec.spec
   describe "Utils" UtilsSpec.spec
+  describe "Infix" InfixSpec.spec
