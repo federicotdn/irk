@@ -100,6 +100,7 @@ echo "Running irk benchmark..."
 hyperfine --warmup 2 "$cmd"
 
 # Move profile file if profiling was enabled
+# Can then be visualized with https://www.speedscope.app
 if [ -n "$rts_flags" ] && [ -f "irk.prof" ]; then
     timestamp=$(date +"%Y%m%d-%H%M%S")
     newname="irk.$timestamp.prof"
