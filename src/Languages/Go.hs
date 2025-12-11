@@ -5,7 +5,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Languages.Common (Parser, PathFilter, hasAnyExtension, hasAnyFilename, recurseDirectories, searchForMatch, symbolAtPos)
 import System.OsPath (OsString)
-import Text.Megaparsec (SourcePos, getSourcePos, takeWhile1P)
+import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, (<|>))
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Utils (FileKind (..), FilePathKind (..), FilePos, Search (..), filePathWithKind, os)
 
@@ -45,7 +45,15 @@ isIdentifier :: Text -> Bool
 isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 
 findSymbolDefinition :: Text -> Text -> [FilePos]
-findSymbolDefinition symbol = searchForMatch (findFuncDef symbol)
+findSymbolDefinition symbol = searchForMatch $ findFuncDef symbol <|> findTypeDef symbol
+
+findTypeDef :: Text -> Parser SourcePos
+findTypeDef name = do
+  _ <- string "type"
+  _ <- hspace1
+  pos <- getSourcePos
+  _ <- string name
+  return pos
 
 findFuncDef :: Text -> Parser SourcePos
 findFuncDef name = do
@@ -53,8 +61,19 @@ findFuncDef name = do
   -- happens in practice.
   _ <- string "func"
   _ <- hspace1
+  _ <- optional $ do
+    _ <- char '('
+    _ <- takeWhile1P Nothing (/= ')')
+    _ <- char ')'
+    _ <- hspace1
+    pure ()
   pos <- getSourcePos
   _ <- string name
+  _ <- optional $ do
+    _ <- char '['
+    _ <- takeWhile1P Nothing (/= ']')
+    _ <- char ']'
+    pure ()
   _ <- hspace
   _ <- char '('
   _ <- takeWhile1P Nothing (/= '{')

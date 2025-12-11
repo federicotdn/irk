@@ -57,3 +57,19 @@ spec = do
       lFindSymbolDefinition c "ident6" cExample `shouldBe` [FilePos Nothing 18 5]
       lFindSymbolDefinition c "ident7" cExample `shouldBe` []
       lFindSymbolDefinition c "ident8" cExample `shouldBe` [FilePos Nothing 25 7]
+
+  describe "go" $ do
+    let go = fromJust $ Map.lookup "go" languages
+
+    it "finds the function definition(s)" $ do
+      goExample <- readTestFile "go/main.go"
+
+      lFindSymbolDefinition go "missing" goExample `shouldBe` []
+      lFindSymbolDefinition go "MyIdent1" goExample `shouldBe` [FilePos Nothing 8 5]
+      lFindSymbolDefinition go "MyIdent2" goExample `shouldBe` [FilePos Nothing 13 5]
+      lFindSymbolDefinition go "MyIdent3" goExample `shouldBe` [FilePos Nothing 17 5]
+      lFindSymbolDefinition go "ident5" goExample `shouldBe` [FilePos Nothing 23 5]
+      lFindSymbolDefinition go "ident6" goExample `shouldBe` [FilePos Nothing 27 20]
+      lFindSymbolDefinition go "myIdent7" goExample `shouldBe` [FilePos Nothing 31 5]
+      lFindSymbolDefinition go "myIdent8" goExample `shouldBe` [FilePos Nothing 32 5]
+      lFindSymbolDefinition go "MyIdent9" goExample `shouldBe` [FilePos Nothing 34 5]
