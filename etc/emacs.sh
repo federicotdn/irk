@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
+set -e
 
 make install
-
 emacs --eval "
 (progn
   (require 'eglot)
@@ -12,6 +12,8 @@ emacs --eval "
                '(go-mode . (\"irk\" \"lsp\")))
   (add-to-list 'eglot-server-programs
                '(c-mode . (\"irk\" \"lsp\")))
+  (add-to-list 'eglot-server-programs
+               '(haskell-mode . (\"irk\" \"lsp\")))
 
   (setq
    eglot-report-progress t

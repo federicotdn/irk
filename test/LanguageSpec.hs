@@ -16,7 +16,7 @@ spec = do
   describe "python" $ do
     let py = fromJust $ Map.lookup "python" languages
 
-    it "finds the function definition(s)" $ do
+    it "finds the symbol definition(s)" $ do
       pythonExample <- readTestFile "python/test.py"
 
       lFindSymbolDefinition py "missing" pythonExample `shouldBe` []
@@ -45,7 +45,7 @@ spec = do
   describe "c" $ do
     let c = fromJust $ Map.lookup "c" languages
 
-    it "finds the function definition(s)" $ do
+    it "finds the symbol definition(s)" $ do
       cExample <- readTestFile "c/test.c"
 
       lFindSymbolDefinition c "missing" cExample `shouldBe` []
@@ -61,7 +61,7 @@ spec = do
   describe "go" $ do
     let go = fromJust $ Map.lookup "go" languages
 
-    it "finds the function definition(s)" $ do
+    it "finds the symbol definition(s)" $ do
       goExample <- readTestFile "go/main.go"
 
       lFindSymbolDefinition go "missing" goExample `shouldBe` []
@@ -73,3 +73,16 @@ spec = do
       lFindSymbolDefinition go "myIdent7" goExample `shouldBe` [FilePos Nothing 31 5]
       lFindSymbolDefinition go "myIdent8" goExample `shouldBe` [FilePos Nothing 32 5]
       lFindSymbolDefinition go "MyIdent9" goExample `shouldBe` [FilePos Nothing 34 5]
+
+  describe "haskell" $ do
+    let hs = fromJust $ Map.lookup "haskell" languages
+
+    it "finds the symbol definition(s)" $ do
+      hsExample <- readTestFile "haskell/test.hs"
+
+      lFindSymbolDefinition hs "missing" hsExample `shouldBe` []
+      lFindSymbolDefinition hs "ident1" hsExample `shouldBe` [FilePos Nothing 2 0]
+      lFindSymbolDefinition hs "Ident2" hsExample `shouldBe` [FilePos Nothing 5 5]
+      lFindSymbolDefinition hs "Ident3" hsExample `shouldBe` [FilePos Nothing 7 8]
+      lFindSymbolDefinition hs "Ident4" hsExample `shouldBe` [FilePos Nothing 9 5]
+      lFindSymbolDefinition hs "Ident5" hsExample `shouldBe` [FilePos Nothing 11 6]

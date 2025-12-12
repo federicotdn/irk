@@ -29,7 +29,7 @@ for arg in "$@"; do
         parse_irk_flags=true
     elif [ "$arg" = "--profile" ]; then
         cabal_extra_flags="--enable-profiling"
-        rts_flags="+RTS -pj"
+        rts_flags="+RTS -pj -RTS"
     elif [ "$parse_irk_flags" = true ]; then
         irk_flags="$irk_flags $arg"
     fi

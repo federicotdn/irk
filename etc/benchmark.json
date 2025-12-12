@@ -15,6 +15,11 @@
       "current": "cmd/kubectl/kubectl.go",
       "symbol": "genMarkdown"
     },
+    "k8s-new": {
+      "repo": "k8s",
+      "current": "cmd/kubectl/kubectl.go",
+      "symbol": "New"
+    },
     "k8s-vendor": {
       "repo": "k8s",
       "current": "cmd/kubectl/kubectl.go",

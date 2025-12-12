@@ -30,8 +30,8 @@ languages =
           { lName = "Haskell",
             lExtensions = LangHs.extensions,
             lSearchPaths = LangHs.searchPaths,
-            lSymbolAtPosition = undefined,
-            lFindSymbolDefinition = undefined
+            lSymbolAtPosition = LangHs.symbolAtPosition,
+            lFindSymbolDefinition = LangHs.findSymbolDefinition
           }
       ),
       ( "python",
