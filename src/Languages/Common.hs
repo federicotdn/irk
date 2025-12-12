@@ -84,12 +84,18 @@ recurseDirectory filterby dir = do
             let directories = filter (\d -> baseFilter depth' d True && filterby depth' d True) (map snd p1)
             let files = filter (\f -> baseFilter depth' f False && filterby depth' f False) (map snd p2)
 
+            -- Write the directories to the queue now so that another
+            -- thread can pick up more work.
             atomically $ do
-              unless (null files) $ mapM_ (writeTQueue results) files
               unless (null directories) $ mapM_ (writeTQueue queue . (,) depth') directories
               -- The -1 here is from the fact that we have already
               -- processed a value we removed ('mnext').
               modifyTVar' pending (+ (length directories - 1))
+
+            -- If files were read, add them to 'results' in a separate
+            -- transaction.
+            unless (null files) $ atomically $ do
+              mapM_ (writeTQueue results) files
 
         when (cpending > 0) worker
 
