@@ -8,6 +8,7 @@ require_cmd() {
 require_cmd jq
 require_cmd git
 require_cmd hyperfine
+require_cmd rg
 
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <case-name> [--flags...]" >&2
@@ -24,12 +25,15 @@ cabal_extra_flags=""
 irk_flags=""
 rts_flags=""
 parse_irk_flags=false
+use_rg=false
 for arg in "$@"; do
     if [ "$arg" = "--" ]; then
         parse_irk_flags=true
     elif [ "$arg" = "--profile" ]; then
-        cabal_extra_flags="--enable-profiling"
+        cabal_extra_flags="--enable-profiling --ghc-options=\"-fprof-late\""
         rts_flags="+RTS -pj -RTS"
+    elif [ "$arg" = "--rg" ]; then
+        use_rg=true
     elif [ "$parse_irk_flags" = true ]; then
         irk_flags="$irk_flags $arg"
     fi
@@ -86,18 +90,33 @@ if [ "$current_commit" != "$commit" ]; then
 fi
 
 cd "$root_dir"
-make install CABAL_EXTRA_FLAGS="$cabal_extra_flags"
 
 active_file="$repo_path/$current"
 
-echo ""
-echo "Running irk..."
-cmd="irk search '$active_file' '$repo_path' '$symbol' $irk_flags $rts_flags"
-bash -c "$cmd"
+if [ "$use_rg" = true ]; then
+    # Determine file extension
+    ext="${active_file##*.}"
 
-echo ""
-echo "Running irk benchmark..."
-hyperfine --warmup 2 "$cmd"
+    echo ""
+    echo "Running rg..."
+    cmd="rg --glob '*.$ext' --word-regexp '$symbol' '$repo_path'"
+    bash -c "$cmd" || true
+
+    echo ""
+    echo "Running rg benchmark..."
+    hyperfine --warmup 2 "$cmd"
+else
+    make install CABAL_EXTRA_FLAGS="$cabal_extra_flags"
+
+    echo ""
+    echo "Running irk..."
+    cmd="irk search '$active_file' '$repo_path' '$symbol' $irk_flags $rts_flags"
+    bash -c "$cmd"
+
+    echo ""
+    echo "Running irk benchmark..."
+    hyperfine --warmup 2 "$cmd"
+fi
 
 # Move profile file if profiling was enabled
 # Can then be visualized with https://www.speedscope.app
