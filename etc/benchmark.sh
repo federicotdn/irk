@@ -1,18 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
-require_cmd() {
-    command -v "$1" >/dev/null 2>&1 || { echo "error: '$1' not found" >&2; exit 1; }
+print_sep() {
+    printf -- "-%.0s" {1..80}; echo
 }
 
-require_cmd jq
-require_cmd git
-require_cmd hyperfine
-require_cmd rg
-
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 <case-name> [--flags...]" >&2
-    echo "Available cases:" >&2
+    echo "usage: $0 <case-name> [--flags...]" >&2
+    echo "available cases:" >&2
     jq -r '.findSymbolDefinition | keys[]' "$(dirname "$0")/benchmark.json" >&2
     exit 1
 fi
@@ -68,16 +63,15 @@ commit=$(echo "$repo_info" | jq -r '.commit')
 repo_name=$(basename "$git_url" .git)
 repo_path="$repos_dir/$repo_name"
 
-echo "Scenario: $case_name"
+echo "scenario: $case_name"
 echo "  git: $git_url"
 echo "  commit: $commit"
 echo "  current: $current"
 echo "  symbol: $symbol"
-echo ""
+print_sep
 
 mkdir -p "$repos_dir"
 if [ ! -d "$repo_path" ]; then
-    echo "Cloning $repo_name..."
     git clone --filter=blob:none "$git_url" "$repo_path"
 fi
 
@@ -85,7 +79,6 @@ cd "$repo_path"
 
 current_commit=$(git rev-parse HEAD)
 if [ "$current_commit" != "$commit" ]; then
-    echo "Checking out commit $commit..."
     git checkout "$commit"
 fi
 
@@ -97,24 +90,23 @@ if [ "$use_rg" = true ]; then
     # Determine file extension
     ext="${active_file##*.}"
 
-    echo ""
-    echo "Running rg..."
+    echo "running rg..."
     cmd="rg --glob '*.$ext' --word-regexp '$symbol' '$repo_path'"
     bash -c "$cmd" || true
 
-    echo ""
-    echo "Running rg benchmark..."
+    print_sep
+    echo "running rg benchmark..."
     hyperfine --warmup 2 "$cmd"
 else
     make install CABAL_EXTRA_FLAGS="$cabal_extra_flags"
 
-    echo ""
-    echo "Running irk..."
+    print_sep
+    echo "running irk..."
     cmd="irk search '$active_file' '$repo_path' '$symbol' $irk_flags $rts_flags"
     bash -c "$cmd"
 
-    echo ""
-    echo "Running irk benchmark..."
+    print_sep
+    echo "running irk benchmark..."
     hyperfine --warmup 2 "$cmd"
 fi
 
@@ -124,5 +116,6 @@ if [ -n "$rts_flags" ] && [ -f "irk.prof" ]; then
     timestamp=$(date +"%Y%m%d-%H%M%S")
     newname="irk.$timestamp.prof"
     mv irk.prof "$newname"
-    echo "Profile saved to $newname"
+    print_sep
+    echo "profile saved to $newname"
 fi
