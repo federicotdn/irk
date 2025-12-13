@@ -40,9 +40,10 @@ findSymbolDefinitionInPath lang symbol symbolBS (FilePathKind path _) = do
   msource <- fileByteString path
   case msource of
     Just source -> do
-      -- Do a quick Text within Text check first, before running the full parser.
-      -- This helps with performance because for the majority of the files scanned,
-      -- the symbol will not be contained in them.
+      -- Do a quick ByteString within ByteString check first before
+      -- running the full parser. This helps with performance because
+      -- for the majority of the files scanned, the symbol will not be
+      -- contained in them.
       if symbolBS `isInfixOfC` source
         then return $ map (`filePosWithPath` path) $ lFindSymbolDefinition lang symbol (decodeUtf8Lenient source)
         else return []
