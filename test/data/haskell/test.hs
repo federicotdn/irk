@@ -1,4 +1,4 @@
-module TestModule where
+module Ident6 where
 
 ident1 :: Int
 ident1 = 42

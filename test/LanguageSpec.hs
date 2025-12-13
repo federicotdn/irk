@@ -88,3 +88,4 @@ spec = do
       lFindSymbolDefinition hs "Ident3" hsExample `shouldBe` [FilePos Nothing 7 8]
       lFindSymbolDefinition hs "Ident4" hsExample `shouldBe` [FilePos Nothing 9 5]
       lFindSymbolDefinition hs "Ident5" hsExample `shouldBe` [FilePos Nothing 11 6]
+      lFindSymbolDefinition hs "Ident6" hsExample `shouldBe` [FilePos Nothing 0 7]
