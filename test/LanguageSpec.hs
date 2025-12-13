@@ -57,6 +57,8 @@ spec = do
       lFindSymbolDefinition c "ident6" cExample `shouldBe` [FilePos Nothing 18 5]
       lFindSymbolDefinition c "ident7" cExample `shouldBe` []
       lFindSymbolDefinition c "ident8" cExample `shouldBe` [FilePos Nothing 25 7]
+      lFindSymbolDefinition c "IDENT9" cExample `shouldBe` [FilePos Nothing 27 8]
+      lFindSymbolDefinition c "ident10" cExample `shouldBe` [FilePos Nothing 31 12]
 
   describe "go" $ do
     let go = fromJust $ Map.lookup "go" languages

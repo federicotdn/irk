@@ -4,6 +4,10 @@
       "git": "https://github.com/kubernetes/kubernetes.git",
       "commit": "03e14cc9432975dec161de1e52d7010f9711a913"
     },
+    "linux": {
+      "git": "https://github.com/torvalds/linux.git",
+      "commit": "9d9c1cfec01cdbf24bd9322ed555713a20422115"
+    },
     "wikiquote": {
       "git": "https://github.com/federicotdn/wikiquote.git",
       "commit": "2ded998e4f7c5f08e0c66bd34c747a6842a2aedb"
@@ -34,6 +38,11 @@
       "repo": "wikiquote",
       "current": "wikiquote/__init__.py",
       "symbol": "quote_of_the_day"
+    },
+    "linux": {
+      "repo": "linux",
+      "current": "net/socket.c",
+      "symbol": "io_madvise"
     }
   }
 }

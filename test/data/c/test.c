@@ -24,3 +24,11 @@ void ident6(int a, float b)
 }
 
   void ident8() {}
+
+#define IDENT9(x) 1
+#define IDENT9fake(x) 1
+#define IDENT1fake 1
+
+static void ident10() {
+  ;
+}

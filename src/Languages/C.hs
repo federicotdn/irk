@@ -1,11 +1,12 @@
 module Languages.C (extensions, searchPaths, symbolAtPosition, findSymbolDefinition) where
 
+import Control.Monad (void)
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Languages.Common (Parser, PathFilter, hasAnyExtension, recurseDirectories, searchForMatch, symbolAtPos)
 import System.OsPath (OsString)
-import Text.Megaparsec (SourcePos, getSourcePos, takeWhile1P, takeWhileP, (<|>))
+import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, takeWhileP, (<|>))
 import Text.Megaparsec.Char (char, hspace1, space, space1, string)
 import Utils (FileKind (..), FilePathKind (..), FilePos (..), Search (..), filePathWithKind, oss)
 
@@ -22,7 +23,8 @@ searchPaths search = do
     WorkspaceSearch workspaces -> do
       paths <- recurseDirectories pathFilter workspaces
       return $ map (filePathWithKind Workspace) paths
-    _ -> error "unimplemented"
+    WorkspaceVendoredSearch _ -> return []
+    ExternalSearch -> return []
 
 symbolAtPosition :: Text -> FilePos -> Maybe Text
 symbolAtPosition = symbolAtPos isIdentifierChar isIdentifier
@@ -44,12 +46,16 @@ findMacroDef name = do
   _ <- hspace1
   pos <- getSourcePos
   _ <- string name
-  _ <- hspace1
+  _ <- hspace1 <|> void (char '(')
   return pos
 
 findFuncDef :: Text -> Parser SourcePos
 findFuncDef name = do
   _ <- takeWhileP Nothing (\c -> c == ' ' || c == '\t')
+  _ <- optional $ do
+    _ <- string "static"
+    _ <- space1
+    pure ()
   _ <- takeWhile1P Nothing isIdentifierChar
   _ <- space1
   pos <- getSourcePos
