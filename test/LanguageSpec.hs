@@ -9,9 +9,9 @@ import Utils (FilePos (..), os)
 
 spec :: Spec
 spec = do
-  describe "languageFor" $ do
+  describe "languageByPath" $ do
     it "retrieves the correct language" $ do
-      lName (fromJust $ languageFor (os "test.hs")) `shouldBe` "Haskell"
+      lName (fromJust $ languageByPath (os "test.hs")) `shouldBe` "Haskell"
 
   describe "python" $ do
     let py = fromJust $ Map.lookup "python" languages

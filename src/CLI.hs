@@ -1,34 +1,37 @@
-module CLI where
+module CLI (runFind, FindOptions (..)) where
 
 import Control.Monad (forM_)
 import qualified Data.Text as T
 import Irk (findSymbolDefinition, searchPaths)
-import Language (languageFor)
+import Language (languageByName)
 import System.Exit (ExitCode (..), exitWith)
-import System.OsPath (unsafeEncodeUtf)
-import Utils (ePutStrLn)
+import System.OsString (decodeUtf, unsafeEncodeUtf)
+import Utils (FilePos (..), ePutStrLn, ignoreIOError)
 
-runCLI :: FilePath -> FilePath -> String -> Bool -> IO ()
-runCLI active workspace symbol walkOnly = do
-  let active' = unsafeEncodeUtf active
-  let workspace' = unsafeEncodeUtf workspace
-  case languageFor active' of
+data FindOptions = FindOptions
+  { fWorkspace :: FilePath,
+    fLanguage :: String,
+    fSymbol :: String,
+    fVerbose :: Bool
+  }
+
+runFind :: FindOptions -> IO ()
+runFind options = do
+  let workspace = unsafeEncodeUtf (fWorkspace options)
+  let language = fLanguage options
+  let symbol = T.pack (fSymbol options)
+  case languageByName language of
     Just lang -> do
-      let searches = searchPaths lang (Just active') [workspace']
-      if walkOnly
-        then do
-          s1 <- head searches
-          s2 <- searches !! 1
-          s3 <- searches !! 2
-          ePutStrLn $ "current: " ++ show s1
-          ePutStrLn $ "main workspace: " ++ show (length s2)
-          -- ePutStrLn $ "main workspace: " ++ show s2
-          ePutStrLn $ "main workspace vendored: " ++ show (length s3)
-        -- ePutStrLn $ "main workspace vendored: " ++ show s3
-        else do
-          positions <- findSymbolDefinition lang (T.pack symbol) searches
-          forM_ positions $ \pos -> do
-            ePutStrLn $ show pos
+      let searches = searchPaths lang Nothing [workspace]
+      positions <- findSymbolDefinition lang symbol searches
+      forM_ positions $ \(FilePos mpath l c) -> do
+        case mpath of
+          Just path -> do
+            result <- ignoreIOError (decodeUtf path)
+            case result of
+              Just decoded -> ePutStrLn $ decoded ++ ":" ++ show (l + 1) ++ ":" ++ show (c + 1)
+              Nothing -> pure ()
+          Nothing -> pure ()
     Nothing -> do
-      ePutStrLn "unknown language"
+      ePutStrLn "error: unknown language"
       exitWith (ExitFailure 1)

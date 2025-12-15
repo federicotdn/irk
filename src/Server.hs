@@ -3,8 +3,9 @@ module Server
     handleMessage,
     handleError,
     handleOutbox,
-    createServer,
     runServer,
+    createServer,
+    ServerOptions (..),
   )
 where
 
@@ -17,9 +18,11 @@ import Data.Text (Text)
 import qualified Data.Vector as V
 import Irk (findSymbolDefinition, searchPaths, symbolAtPosition)
 import LSP
-import Language (languageFor)
+import Language (languageByPath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
 import Utils (ePutStrLn, fileText)
+
+newtype ServerOptions = ServerOptions {sVerbose :: Bool}
 
 data Server = Server
   { verbose :: Bool,
@@ -60,7 +63,7 @@ handleTextDocDefinition srv rid mparams = do
       let textDoc = jsonGetOr params "textDocument" $ object []
       let muri = jsonGet textDoc "uri" :: Maybe URI
       let mpos = filePosFromPosition <$> jsonGet params "position"
-      let mlang = muri >>= languageFor . pathFromURI
+      let mlang = muri >>= languageByPath . pathFromURI
 
       msource <- case muri of
         Just uri -> fileText $ pathFromURI uri
@@ -193,8 +196,9 @@ createServer verb =
       outbox = []
     }
 
-runServer :: Server -> IO ()
-runServer srv = do
+runServer :: ServerOptions -> IO ()
+runServer options = do
+  let srv = createServer (sVerbose options)
   vPutStrLn srv "info: starting lsp server"
   loop srv
   where

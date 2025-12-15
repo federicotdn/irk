@@ -12,6 +12,7 @@ module Utils
     os,
     oss,
     longestPrefix,
+    ignoreIOError,
   )
 where
 
@@ -66,10 +67,7 @@ ePutStrLn = hPutStrLn stderr
 fileByteString :: OsPath -> IO (Maybe BS.ByteString)
 fileByteString path = do
   path' <- decodeUtf path
-  result <- tryIOError (BS.readFile path')
-  case result of
-    Right content -> return $ Just content
-    Left _ -> return Nothing
+  ignoreIOError (BS.readFile path')
 
 fileText :: OsPath -> IO (Maybe Text)
 fileText path = do
@@ -87,3 +85,10 @@ longestPrefix path prefixes =
   case filter (`isPrefixOf` path) prefixes of
     [] -> Nothing
     matches -> Just $ maximumBy (compare `on` OS.length) matches
+
+ignoreIOError :: IO a -> IO (Maybe a)
+ignoreIOError op = do
+  result <- tryIOError op
+  case result of
+    Right val -> return $ Just val
+    Left _ -> return Nothing

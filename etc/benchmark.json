@@ -16,32 +16,32 @@
   "findSymbolDefinition": {
     "k8s": {
       "repo": "k8s",
-      "current": "cmd/kubectl/kubectl.go",
+      "lang": "go",
       "symbol": "genMarkdown"
     },
     "k8s-new": {
       "repo": "k8s",
-      "current": "cmd/kubectl/kubectl.go",
+      "lang": "go",
       "symbol": "New"
     },
     "k8s-vendor": {
       "repo": "k8s",
-      "current": "cmd/kubectl/kubectl.go",
+      "lang": "go",
       "symbol": "IgnoreTopFunction"
     },
     "k8s-notfound": {
       "repo": "k8s",
-      "current": "cmd/kubectl/kubectl.go",
+      "lang": "go",
       "symbol": "ThisSymbolDoesNotExist"
     },
     "wq": {
       "repo": "wikiquote",
-      "current": "wikiquote/__init__.py",
+      "lang": "python",
       "symbol": "quote_of_the_day"
     },
     "linux": {
       "repo": "linux",
-      "current": "net/socket.c",
+      "lang": "c",
       "symbol": "io_madvise"
     }
   }

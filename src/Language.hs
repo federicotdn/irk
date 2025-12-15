@@ -1,4 +1,4 @@
-module Language (Language (..), languageFor, languages) where
+module Language (Language (..), languageByPath, languageByName, languages) where
 
 import Data.List (find)
 import Data.Map (Map)
@@ -63,5 +63,8 @@ languages =
       )
     ]
 
-languageFor :: OsPath -> Maybe Language
-languageFor path = find (elem (takeExtension path) . lExtensions) $ Map.elems languages
+languageByPath :: OsPath -> Maybe Language
+languageByPath path = find (elem (takeExtension path) . lExtensions) $ Map.elems languages
+
+languageByName :: String -> Maybe Language
+languageByName name = snd <$> find (\(k, v) -> k == name || lName v == name) (Map.toList languages)

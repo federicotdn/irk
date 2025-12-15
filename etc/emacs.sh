@@ -2,18 +2,14 @@
 set -e
 
 make install
-emacs --eval "
+emacs -l etc/irk.el --eval "
 (progn
   (require 'eglot)
 
-  (add-to-list 'eglot-server-programs
-               '(python-mode . (\"irk\" \"lsp\")))
-  (add-to-list 'eglot-server-programs
-               '(go-mode . (\"irk\" \"lsp\")))
-  (add-to-list 'eglot-server-programs
-               '(c-mode . (\"irk\" \"lsp\")))
-  (add-to-list 'eglot-server-programs
-               '(haskell-mode . (\"irk\" \"lsp\")))
+  (setq irk-languages '(\"haskell\" \"go\"))
+
+  (irk-enable)
+  (irk-eglot-enable)
 
   (setq
    eglot-report-progress t
