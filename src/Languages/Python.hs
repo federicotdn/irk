@@ -5,7 +5,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Languages.Common (Parser, PathFilter, hasAnyExtension, hasAnyFilename, recurseDirectories, searchForMatch, symbolAtPos)
 import System.OsPath (OsString)
-import Text.Megaparsec (SourcePos, getSourcePos, takeWhile1P, takeWhileP, (<|>))
+import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, takeWhileP, try, (<|>))
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Utils (FileKind (..), FilePathKind (..), FilePos, Search (..), filePathWithKind, os, oss)
 
@@ -45,7 +45,11 @@ isIdentifier :: Text -> Bool
 isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 
 findSymbolDefinition :: Text -> Text -> [FilePos]
-findSymbolDefinition symbol = searchForMatch $ findFuncDef symbol <|> findClassDef symbol
+findSymbolDefinition symbol =
+  searchForMatch $
+    -- Use 'try' here to avoid consuming initial whitespace in case we don't match
+    try (findFuncDef symbol)
+      <|> findClassDef symbol
 
 findClassDef :: Text -> Parser SourcePos
 findClassDef name = do
@@ -55,8 +59,12 @@ findClassDef name = do
   pos <- getSourcePos
   _ <- string name
   _ <- hspace
-  _ <- char '('
-  _ <- takeWhile1P Nothing (/= ':')
+  _ <- optional $ do
+    _ <- char '('
+    _ <- takeWhileP Nothing (/= ')')
+    _ <- char ')'
+    _ <- hspace
+    pure ()
   _ <- char ':'
   return pos
 

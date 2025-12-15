@@ -15,3 +15,9 @@ class Ident3:
         ...
 
 ident1()
+
+class Ident5(Foo):
+    ...
+
+    class Ident6:
+        ...

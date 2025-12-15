@@ -23,6 +23,8 @@ spec = do
       lFindSymbolDefinition py "ident1" pythonExample `shouldBe` [FilePos Nothing 2 4]
       lFindSymbolDefinition py "ident2" pythonExample `shouldBe` [FilePos Nothing 7 4, FilePos Nothing 9 4]
       lFindSymbolDefinition py "ident4" pythonExample `shouldBe` [FilePos Nothing 13 8]
+      lFindSymbolDefinition py "Ident5" pythonExample `shouldBe` [FilePos Nothing 18 6]
+      lFindSymbolDefinition py "Ident6" pythonExample `shouldBe` [FilePos Nothing 21 10]
 
     it "gets the symbol at a position correctly" $ do
       lSymbolAtPosition py "" (FilePos Nothing 0 0) `shouldBe` Nothing

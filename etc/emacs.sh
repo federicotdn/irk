@@ -6,7 +6,7 @@ emacs -l etc/irk.el --eval "
 (progn
   (require 'eglot)
 
-  (setq irk-languages '(\"haskell\" \"go\"))
+  (setq irk-languages '(\"haskell\" \"python\"))
 
   (irk-enable)
   (irk-eglot-enable)
