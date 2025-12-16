@@ -31,21 +31,6 @@ With optional DISABLE argument, remove the hook instead."
       (remove-hook 'xref-backend-functions #'irk--xref-backend)
     (add-hook 'xref-backend-functions #'irk--xref-backend)))
 
-(defun irk--eglot-managed-mode-hook ()
-  "Add irk xref backend to buffer-local xref-backend-functions."
-  ;; Eglot uses depth nil (i.e. 0), so 10 should have less priority.
-  (add-hook 'xref-backend-functions #'irk--xref-backend 10 t))
-
-(defun irk-eglot-enable (&optional disable)
-  "Enable irk xref backend for eglot-managed buffers.
-Adds irk--xref-backend to the buffer-local xref-backend-functions,
-appending it at the end so eglot's backend is tried first.
-With optional DISABLE argument, remove the hook instead."
-  (require 'eglot)
-  (if disable
-      (remove-hook 'eglot-managed-mode-hook #'irk--eglot-managed-mode-hook)
-    (add-hook 'eglot-managed-mode-hook #'irk--eglot-managed-mode-hook)))
-
 (defun irk--xref-backend ()
   (let ((language (cdr (assoc major-mode irk--languages))))
     (when (and language (member language irk-languages))

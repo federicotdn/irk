@@ -9,7 +9,6 @@ emacs -l etc/irk.el --eval "
   (setq irk-languages '(\"haskell\" \"python\"))
 
   (irk-enable)
-  (irk-eglot-enable)
 
   (setq
    eglot-report-progress t
