@@ -22,11 +22,20 @@ import Data.List (maximumBy)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import System.Directory (getFileSize)
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error (tryIOError)
+import System.IO.MMap (mmapFileByteString)
 import System.OsPath (OsPath, decodeUtf, unsafeEncodeUtf)
 import System.OsString (OsString, isPrefixOf)
 import qualified System.OsString as OS
+
+-- File size thresholds for reading strategy
+maxFileSize :: Integer
+maxFileSize = 4 * 1024 * 1024 -- 4 MB
+
+mmapThreshold :: Integer
+mmapThreshold = 32 * 1024 -- 32 KB
 
 -- | os converts a 'String' instance to 'OsString'.
 -- | Only for use with literals.
@@ -67,7 +76,13 @@ ePutStrLn = hPutStrLn stderr
 fileByteString :: OsPath -> IO (Maybe BS.ByteString)
 fileByteString path = do
   path' <- decodeUtf path
-  ignoreIOError (BS.readFile path')
+  size <- getFileSize path'
+  case size of
+    0 -> return Nothing
+    _
+      | size > maxFileSize -> return Nothing
+      | size < mmapThreshold -> ignoreIOError (BS.readFile path')
+      | otherwise -> ignoreIOError (mmapFileByteString path' Nothing)
 
 fileText :: OsPath -> IO (Maybe Text)
 fileText path = do
