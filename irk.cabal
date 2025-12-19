@@ -57,6 +57,7 @@ library
                     , Languages.C
                     , Utils
                     , Infix
+                    , Types
     hs-source-dirs:   src
 
 executable irk

@@ -1,13 +1,14 @@
-module Languages.Python (extensions, searchPaths, symbolAtPosition, findSymbolDefinition) where
+module Languages.Python (extensions, searchPath, symbolAtPosition, findSymbolDefinition) where
 
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Languages.Common (Parser, PathFilter, hasAnyExtension, hasAnyFilename, recurseDirectories, searchForMatch, symbolAtPos)
+import Languages.Common (Parser, PathFilter, hasAnyExtension, hasAnyFilename, recurseDirectory, searchForMatch, symbolAtPos)
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, takeWhileP, try, (<|>))
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
-import Utils (FileKind (..), FilePathKind (..), FilePos, Search (..), filePathWithKind, os, oss)
+import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
+import Utils (os, oss)
 
 extensions :: [OsString]
 extensions = [os ".py"]
@@ -22,18 +23,14 @@ pathFilterVendor 1 _ False = False -- Ignore top-level files
 pathFilterVendor 1 path True = not (pathFilter 1 path True) -- Recurse into venvs
 pathFilterVendor depth path isDir = pathFilter depth path isDir
 
-searchPaths :: Search -> IO [FilePathKind]
-searchPaths search = do
-  case search of
-    WorkspaceSearch workspaces -> do
-      paths <- recurseDirectories pathFilter workspaces
-      return $ map (filePathWithKind Workspace) paths
-    WorkspaceVendoredSearch workspaces -> do
-      paths <- recurseDirectories pathFilterVendor workspaces
-      return $ map (filePathWithKind WorkspaceVendored) paths
-    ExternalSearch -> return [] -- TODO
+searchPath :: IrkFile -> IO [IrkFile]
+searchPath origin = do
+  case iArea origin of
+    Workspace -> recurseDirectory pathFilter origin
+    WorkspaceVendored -> recurseDirectory pathFilterVendor origin
+    External -> return []
 
-symbolAtPosition :: Text -> FilePos -> Maybe Text
+symbolAtPosition :: Text -> IrkFilePos -> Maybe Text
 symbolAtPosition = symbolAtPos isIdentifierChar isIdentifier
 
 isIdentifierChar :: Char -> Bool
@@ -44,7 +41,7 @@ isIdentifierChar ch = isAlphaNum ch || ch == '_'
 isIdentifier :: Text -> Bool
 isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 
-findSymbolDefinition :: Text -> Text -> [FilePos]
+findSymbolDefinition :: Text -> Text -> [IrkFilePos]
 findSymbolDefinition symbol =
   searchForMatch $
     -- Use 'try' here to avoid consuming initial whitespace in case we don't match

@@ -1,14 +1,15 @@
-module Languages.C (extensions, searchPaths, symbolAtPosition, findSymbolDefinition) where
+module Languages.C (extensions, searchPath, symbolAtPosition, findSymbolDefinition) where
 
 import Control.Monad (void)
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Languages.Common (Parser, PathFilter, hasAnyExtension, recurseDirectories, searchForMatch, symbolAtPos)
+import Languages.Common (Parser, PathFilter, hasAnyExtension, recurseDirectory, searchForMatch, symbolAtPos)
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, takeWhileP, (<|>))
 import Text.Megaparsec.Char (char, hspace1, space, space1, string)
-import Utils (FileKind (..), FilePathKind (..), FilePos (..), Search (..), filePathWithKind, oss)
+import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
+import Utils (oss)
 
 extensions :: [OsString]
 extensions = oss [".c", ".h"]
@@ -17,16 +18,15 @@ pathFilter :: PathFilter
 pathFilter _ path False = hasAnyExtension path extensions
 pathFilter _ _ _ = True
 
-searchPaths :: Search -> IO [FilePathKind]
-searchPaths search = do
-  case search of
-    WorkspaceSearch workspaces -> do
-      paths <- recurseDirectories pathFilter workspaces
-      return $ map (filePathWithKind Workspace) paths
-    WorkspaceVendoredSearch _ -> return []
-    ExternalSearch -> return []
+searchPath :: IrkFile -> IO [IrkFile]
+searchPath origin = do
+  case iArea origin of
+    Workspace -> do
+      recurseDirectory pathFilter origin
+    WorkspaceVendored -> return []
+    External -> return []
 
-symbolAtPosition :: Text -> FilePos -> Maybe Text
+symbolAtPosition :: Text -> IrkFilePos -> Maybe Text
 symbolAtPosition = symbolAtPos isIdentifierChar isIdentifier
 
 isIdentifierChar :: Char -> Bool
@@ -37,7 +37,7 @@ isIdentifierChar ch = isAlphaNum ch || ch == '_'
 isIdentifier :: Text -> Bool
 isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 
-findSymbolDefinition :: Text -> Text -> [FilePos]
+findSymbolDefinition :: Text -> Text -> [IrkFilePos]
 findSymbolDefinition symbol = searchForMatch $ findMacroDef symbol <|> findFuncDef symbol
 
 findMacroDef :: Text -> Parser SourcePos

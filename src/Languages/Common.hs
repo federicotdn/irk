@@ -1,5 +1,5 @@
 module Languages.Common
-  ( recurseDirectories,
+  ( recurseDirectory,
     Parser,
     searchForMatch,
     symbolAtPos,
@@ -20,13 +20,15 @@ import Data.Maybe (isNothing)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
-import System.Directory.OsPath (doesDirectoryExist, listDirectory)
+import System.Directory.Internal (FileType (..), fileSizeFromMetadata, fileTypeFromMetadata, getFileMetadata)
+import System.Directory.OsPath (listDirectory)
 import System.OsPath (OsPath, pack, pathSeparator, takeFileName)
 import System.OsString (OsString, isSuffixOf)
 import Text.Megaparsec (Parsec, atEnd, optional, parse, takeWhileP, try)
 import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Pos (SourcePos, sourceColumn, sourceLine, unPos)
-import Utils (FilePos (..), extractLine, oss)
+import Types (IrkFile (..), IrkFilePos (..), emptyFile)
+import Utils (extractLine, oss)
 
 type Parser = Parsec Void Text
 
@@ -51,14 +53,21 @@ joinPaths :: OsPath -> OsPath -> OsPath
 joinPaths p1 p2 = mconcat [p1, sep, p2]
 {-# INLINE joinPaths #-}
 
-recurseDirectory :: PathFilter -> OsPath -> IO [OsPath]
+recurseDirectory :: PathFilter -> IrkFile -> IO [IrkFile]
 recurseDirectory filterby dir = do
   queue <- newTQueueIO
   pending <- newTVarIO (1 :: Int)
   results <- newTQueueIO
   capa <- getNumCapabilities
 
-  atomically $ writeTQueue queue (0 :: Int, dir)
+  atomically $
+    writeTQueue queue $
+      IrkFile
+        { iPath = iPath dir,
+          iFileSize = Nothing,
+          iDepth = 0,
+          iArea = iArea dir
+        }
 
   let worker = do
         (mnext, cpending) <- atomically $ do
@@ -72,22 +81,25 @@ recurseDirectory filterby dir = do
 
         case mnext of
           Nothing -> pure ()
-          Just (depth, next) -> do
-            entries <- listDirectory next
+          Just next -> do
+            let depth' = iDepth next + 1
+            entries <- listDirectory $ iPath next
             entries' <- forM entries $ \e -> do
-              let path = next `joinPaths` e
-              isDir <- doesDirectoryExist path
-              return (isDir, path)
+              let path = iPath next `joinPaths` e
+              metadata <- getFileMetadata path
+              let isDir = fileTypeFromMetadata metadata `elem` [Directory, DirectoryLink]
+              let fileSize = if isDir then Nothing else Just $ fileSizeFromMetadata metadata
+              return IrkFile {iPath = path, iFileSize = fileSize, iDepth = depth', iArea = iArea next}
 
-            let depth' = depth + 1
-            let (p1, p2) = partition fst entries'
-            let directories = filter (\d -> baseFilter depth' d True && filterby depth' d True) (map snd p1)
-            let files = filter (\f -> baseFilter depth' f False && filterby depth' f False) (map snd p2)
+            let (p1, p2) = partition (isNothing . iFileSize) entries'
+            -- TODO: Refactor filter system
+            let directories = filter (\d -> baseFilter depth' (iPath d) True && filterby depth' (iPath d) True) p1
+            let files = filter (\f -> baseFilter depth' (iPath f) False && filterby depth' (iPath f) False) p2
 
             -- Write the directories to the queue now so that another
             -- thread can pick up more work.
             atomically $ do
-              unless (null directories) $ mapM_ (writeTQueue queue . (,) depth') directories
+              unless (null directories) $ mapM_ (writeTQueue queue) directories
               -- The -1 here is from the fact that we have already
               -- processed a value we removed ('mnext').
               modifyTVar' pending (+ (length directories - 1))
@@ -107,17 +119,13 @@ recurseDirectory filterby dir = do
     flushTQueue results
 {-# INLINE recurseDirectory #-}
 
-recurseDirectories :: PathFilter -> [OsPath] -> IO [OsPath]
-recurseDirectories filterby dirs = concat <$> mapM (recurseDirectory filterby) dirs
-{-# INLINE recurseDirectories #-}
-
 skipLine :: Parser ()
 skipLine = do
   _ <- takeWhileP Nothing (/= '\n')
   _ <- optional newline
   return ()
 
-searchForMatchInner :: Parser SourcePos -> Parser [FilePos]
+searchForMatchInner :: Parser SourcePos -> Parser [IrkFilePos]
 searchForMatchInner parser = loop []
   where
     loop matches = do
@@ -130,20 +138,20 @@ searchForMatchInner parser = loop []
             Just pos -> do
               let line = unPos (sourceLine pos) - 1
               let column = unPos (sourceColumn pos) - 1
-              return [FilePos Nothing line column]
+              return [IrkFilePos emptyFile line column]
             Nothing -> return []
           _ <- skipLine
           loop (matches ++ newMatches)
 {-# INLINE searchForMatchInner #-}
 
-searchForMatch :: Parser SourcePos -> Text -> [FilePos]
+searchForMatch :: Parser SourcePos -> Text -> [IrkFilePos]
 searchForMatch parser source =
   case parse (searchForMatchInner parser) "<input>" source of
     Right result -> result
     _ -> []
 {-# INLINE searchForMatch #-}
 
-symbolAtPos :: (Char -> Bool) -> (Text -> Bool) -> Text -> FilePos -> Maybe Text
+symbolAtPos :: (Char -> Bool) -> (Text -> Bool) -> Text -> IrkFilePos -> Maybe Text
 symbolAtPos isIdentifierChar isIdentifier source fp = case parts of
   Nothing -> Nothing
   Just (before, after) -> do

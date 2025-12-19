@@ -5,7 +5,8 @@ import Data.Maybe (fromJust)
 import Irk
 import Language (languages)
 import Test.Hspec
-import Utils (FileKind (..), FilePathKind (..), os)
+import Types (IrkFile (..), IrkFileArea (..))
+import Utils (os)
 
 spec :: Spec
 spec = do
@@ -17,10 +18,8 @@ spec = do
       allPaths <- sequence searches
       allPaths
         `shouldBe` [ [],
-                     [],
-                     [],
-                     [FilePathKind (os "test/data/python/test.py") Workspace],
-                     [FilePathKind (os "test/data/python/.venv/vendored.py") WorkspaceVendored],
+                     [IrkFile (os "test/data/python/test.py") (Just 239) 1 Workspace],
+                     [IrkFile (os "test/data/python/.venv/vendored.py") (Just 0) 2 WorkspaceVendored],
                      []
                    ]
 
@@ -28,10 +27,8 @@ spec = do
       let searches = searchPaths py (Just (os "test/data/python/foo.py")) [os "test/data/python"]
       allPaths <- sequence searches
       allPaths
-        `shouldBe` [ [FilePathKind (os "test/data/python/foo.py") Current],
-                     [FilePathKind (os "test/data/python/test.py") Workspace],
-                     [FilePathKind (os "test/data/python/.venv/vendored.py") WorkspaceVendored],
-                     [],
-                     [],
+        `shouldBe` [ [IrkFile (os "test/data/python/foo.py") Nothing 0 Workspace],
+                     [IrkFile (os "test/data/python/test.py") (Just 239) 1 Workspace],
+                     [IrkFile (os "test/data/python/.venv/vendored.py") (Just 0) 2 WorkspaceVendored],
                      []
                    ]

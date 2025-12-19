@@ -9,14 +9,14 @@ import qualified Languages.Go as LangGo
 import qualified Languages.Haskell as LangHs
 import qualified Languages.Python as LangPy
 import System.OsPath (OsPath, OsString, takeExtension)
-import Utils (FilePathKind, FilePos, Search)
+import Types (IrkFile, IrkFilePos)
 
 data Language = Language
   { lName :: String,
     lExtensions :: [OsString],
-    lSearchPaths :: Search -> IO [FilePathKind],
-    lSymbolAtPosition :: Text -> FilePos -> Maybe Text,
-    lFindSymbolDefinition :: Text -> Text -> [FilePos]
+    lSearchPath :: IrkFile -> IO [IrkFile],
+    lSymbolAtPosition :: Text -> IrkFilePos -> Maybe Text,
+    lFindSymbolDefinition :: Text -> Text -> [IrkFilePos]
   }
 
 instance Show Language where
@@ -29,7 +29,7 @@ languages =
         Language
           { lName = "Haskell",
             lExtensions = LangHs.extensions,
-            lSearchPaths = LangHs.searchPaths,
+            lSearchPath = LangHs.searchPath,
             lSymbolAtPosition = LangHs.symbolAtPosition,
             lFindSymbolDefinition = LangHs.findSymbolDefinition
           }
@@ -38,7 +38,7 @@ languages =
         Language
           { lName = "Python",
             lExtensions = LangPy.extensions,
-            lSearchPaths = LangPy.searchPaths,
+            lSearchPath = LangPy.searchPath,
             lSymbolAtPosition = LangPy.symbolAtPosition,
             lFindSymbolDefinition = LangPy.findSymbolDefinition
           }
@@ -47,7 +47,7 @@ languages =
         Language
           { lName = "Go",
             lExtensions = LangGo.extensions,
-            lSearchPaths = LangGo.searchPaths,
+            lSearchPath = LangGo.searchPath,
             lSymbolAtPosition = LangGo.symbolAtPosition,
             lFindSymbolDefinition = LangGo.findSymbolDefinition
           }
@@ -56,7 +56,7 @@ languages =
         Language
           { lName = "C",
             lExtensions = LangC.extensions,
-            lSearchPaths = LangC.searchPaths,
+            lSearchPath = LangC.searchPath,
             lSymbolAtPosition = LangC.symbolAtPosition,
             lFindSymbolDefinition = LangC.findSymbolDefinition
           }

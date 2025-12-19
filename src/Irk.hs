@@ -10,34 +10,34 @@ import Data.Maybe (fromMaybe, maybeToList)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8Lenient, encodeUtf8)
 import Infix (isInfixOfC)
-import Language (Language, lFindSymbolDefinition, lSearchPaths, lSymbolAtPosition)
+import Language (Language, lFindSymbolDefinition, lSearchPath, lSymbolAtPosition)
 import System.OsPath (OsPath)
 import System.OsString (empty)
-import Utils (FileKind (..), FilePathKind (..), FilePos, Search (..), fileByteString, filePosWithPath, longestPrefix)
+import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..), emptyFile, workspaceRoot)
+import Utils (fileByteString, longestPrefix)
 
-searchPaths :: Language -> Maybe OsPath -> [OsPath] -> [IO [FilePathKind]]
+searchPaths :: Language -> Maybe OsPath -> [OsPath] -> [IO [IrkFile]]
 searchPaths lang mcurrent workspaces =
   let current = fromMaybe empty mcurrent
       mactiveWorkspace = longestPrefix current workspaces
       otherWorkspaces = filter (\w -> Just w /= mactiveWorkspace) workspaces
-      currentPath = maybe [] (\path -> [FilePathKind path Current]) mcurrent
+      currentPath = maybe [] (\path -> [workspaceRoot Workspace path]) mcurrent
    in -- Don't actually run the file searches, but rather build the
       -- IO [FilePathKind] that can be later evaluated to get a list
       -- of paths.
-      [ pure currentPath,
-        lSearchPaths lang (WorkspaceSearch $ maybeToList mactiveWorkspace),
-        lSearchPaths lang (WorkspaceVendoredSearch $ maybeToList mactiveWorkspace),
-        lSearchPaths lang (WorkspaceSearch otherWorkspaces),
-        lSearchPaths lang (WorkspaceVendoredSearch otherWorkspaces),
-        lSearchPaths lang ExternalSearch
-      ]
+      pure currentPath
+        : map (lSearchPath lang . workspaceRoot Workspace) (maybeToList mactiveWorkspace)
+        ++ map (lSearchPath lang . workspaceRoot WorkspaceVendored) (maybeToList mactiveWorkspace)
+        ++ map (lSearchPath lang . workspaceRoot Workspace) otherWorkspaces
+        ++ map (lSearchPath lang . workspaceRoot WorkspaceVendored) otherWorkspaces
+        ++ [lSearchPath lang emptyFile {iArea = External}]
 
-symbolAtPosition :: Language -> Text -> FilePos -> Maybe Text
+symbolAtPosition :: Language -> Text -> IrkFilePos -> Maybe Text
 symbolAtPosition = lSymbolAtPosition
 
-findSymbolDefinitionInPath :: Language -> Text -> BS.ByteString -> FilePathKind -> IO [FilePos]
-findSymbolDefinitionInPath lang symbol symbolBS (FilePathKind path _) = do
-  msource <- fileByteString path
+findSymbolDefinitionInPath :: Language -> Text -> BS.ByteString -> IrkFile -> IO [IrkFilePos]
+findSymbolDefinitionInPath lang symbol symbolBS f = do
+  msource <- fileByteString f
   case msource of
     Just source -> do
       -- Do a quick ByteString within ByteString check first before
@@ -45,11 +45,11 @@ findSymbolDefinitionInPath lang symbol symbolBS (FilePathKind path _) = do
       -- for the majority of the files scanned, the symbol will not be
       -- contained in them.
       if symbolBS `isInfixOfC` source
-        then return $ map (`filePosWithPath` path) $ lFindSymbolDefinition lang symbol (decodeUtf8Lenient source)
+        then return $ map (\(IrkFilePos _ l c) -> IrkFilePos f l c) $ lFindSymbolDefinition lang symbol (decodeUtf8Lenient source)
         else return []
     _ -> return []
 
-findSymbolDefinitionInPaths :: Language -> Text -> [FilePathKind] -> IO [FilePos]
+findSymbolDefinitionInPaths :: Language -> Text -> [IrkFile] -> IO [IrkFilePos]
 findSymbolDefinitionInPaths lang symbol paths = do
   queue <- newTQueueIO
   results <- newTQueueIO
@@ -75,7 +75,7 @@ findSymbolDefinitionInPaths lang symbol paths = do
     unless isEmpty retry
     flushTQueue results
 
-findSymbolDefinition :: Language -> Text -> [IO [FilePathKind]] -> IO [FilePos]
+findSymbolDefinition :: Language -> Text -> [IO [IrkFile]] -> IO [IrkFilePos]
 findSymbolDefinition lang symbol searches = do
   case searches of
     [] -> return []

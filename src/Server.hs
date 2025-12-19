@@ -20,6 +20,7 @@ import Irk (findSymbolDefinition, searchPaths, symbolAtPosition)
 import LSP
 import Language (languageByPath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
+import Types (IrkFile (..), IrkFilePos (..), emptyFile)
 import Utils (ePutStrLn, fileText)
 
 newtype ServerOptions = ServerOptions {sVerbose :: Bool}
@@ -62,11 +63,11 @@ handleTextDocDefinition srv rid mparams = do
     Just params@(Object _) -> do
       let textDoc = jsonGetOr params "textDocument" $ object []
       let muri = jsonGet textDoc "uri" :: Maybe URI
-      let mpos = filePosFromPosition <$> jsonGet params "position"
+      let mpos = (\(Position l c) -> IrkFilePos emptyFile l c) <$> jsonGet params "position"
       let mlang = muri >>= languageByPath . pathFromURI
 
       msource <- case muri of
-        Just uri -> fileText $ pathFromURI uri
+        Just uri -> fileText $ emptyFile {iPath = pathFromURI uri}
         Nothing -> pure Nothing
 
       msymbol <- case (msource, mlang, mpos) of
@@ -78,7 +79,7 @@ handleTextDocDefinition srv rid mparams = do
           let path = pathFromURI uri
           let searches = searchPaths lang (Just path) $ map pathFromURI (workspaces srv)
           positions <- findSymbolDefinition lang symbol searches
-          let locations = mapMaybe locationFromFilePos positions
+          let locations = map locationFromFilePos positions
 
           returnResponse srv rid $ Array (V.fromList $ map toJSON locations)
         (Nothing, _, _, _) -> returnError srv rid InvalidRequest "missing document uri" Nothing

@@ -13,7 +13,6 @@ module LSP
     URI (..),
     PositionEncoding (..),
     locationFromFilePos,
-    filePosFromPosition,
     rangeFromFilePos,
     pathFromURI,
     readMessage,
@@ -40,7 +39,8 @@ import System.IO (hWaitForInput, stdin)
 import System.OsPath (OsPath, unsafeEncodeUtf)
 import qualified System.OsString as OS
 import Text.Read (readMaybe)
-import Utils (FilePos (..), os)
+import Types (IrkFile (..), IrkFilePos (..))
+import Utils (os)
 
 data Header = Header String String deriving (Show)
 
@@ -77,9 +77,6 @@ uriFromPath path = FileURI $ os "file://" <> path
 
 data Position = Position {pLine :: Int, pCharacter :: Int} deriving (Show, Generic)
 
-filePosFromPosition :: Position -> FilePos
-filePosFromPosition pos = FilePos Nothing (pLine pos) (pCharacter pos)
-
 instance FromJSON Position where
   parseJSON = genericParseJSON customOptions
 
@@ -90,8 +87,8 @@ instance ToJSON Position where
 data Range = Range {rStart :: Position, rEnd :: Position} deriving (Show, Generic)
 
 -- | Construct a zero-length Range at a file position.
-rangeFromFilePos :: FilePos -> Range
-rangeFromFilePos (FilePos _ l c) = Range {rStart = pos, rEnd = pos}
+rangeFromFilePos :: IrkFilePos -> Range
+rangeFromFilePos (IrkFilePos _ l c) = Range {rStart = pos, rEnd = pos}
   where
     pos = Position {pLine = l, pCharacter = c}
 
@@ -104,9 +101,8 @@ instance ToJSON Range where
 
 data Location = Location {lUri :: URI, lRange :: Range} deriving (Show, Generic)
 
-locationFromFilePos :: FilePos -> Maybe Location
-locationFromFilePos fp@(FilePos (Just path) _ _) = Just $ Location {lUri = uriFromPath path, lRange = rangeFromFilePos fp}
-locationFromFilePos (FilePos Nothing _ _) = Nothing
+locationFromFilePos :: IrkFilePos -> Location
+locationFromFilePos fp@(IrkFilePos f _ _) = Location {lUri = uriFromPath (iPath f), lRange = rangeFromFilePos fp}
 
 instance FromJSON Location where
   parseJSON = genericParseJSON customOptions

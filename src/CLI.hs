@@ -6,7 +6,8 @@ import Irk (findSymbolDefinition, searchPaths)
 import Language (languageByName)
 import System.Exit (ExitCode (..), exitWith)
 import System.OsString (decodeUtf, unsafeEncodeUtf)
-import Utils (FilePos (..), ePutStrLn, ignoreIOError)
+import Types (IrkFile (..), IrkFilePos (..))
+import Utils (ePutStrLn, ignoreIOError)
 
 data FindOptions = FindOptions
   { fWorkspace :: FilePath,
@@ -24,13 +25,10 @@ runFind options = do
     Just lang -> do
       let searches = searchPaths lang Nothing [workspace]
       positions <- findSymbolDefinition lang symbol searches
-      forM_ positions $ \(FilePos mpath l c) -> do
-        case mpath of
-          Just path -> do
-            result <- ignoreIOError (decodeUtf path)
-            case result of
-              Just decoded -> ePutStrLn $ decoded ++ ":" ++ show (l + 1) ++ ":" ++ show (c + 1)
-              Nothing -> pure ()
+      forM_ positions $ \(IrkFilePos f l c) -> do
+        result <- ignoreIOError (decodeUtf $ iPath f)
+        case result of
+          Just decoded -> ePutStrLn $ decoded ++ ":" ++ show (l + 1) ++ ":" ++ show (c + 1)
           Nothing -> pure ()
     Nothing -> do
       ePutStrLn "error: unknown language"
