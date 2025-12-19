@@ -9,10 +9,10 @@ import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, getSourcePos, (<|>))
 import Text.Megaparsec.Char (char, space, space1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
-import Utils (os)
+import Utils (oss, os)
 
 extensions :: [OsString]
-extensions = [os ".hs"]
+extensions = oss [".hs", ".hsc"]
 
 pathFilter :: PathFilter
 pathFilter _ path False = hasAnyExtension path extensions
