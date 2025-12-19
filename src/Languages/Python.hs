@@ -44,9 +44,20 @@ isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 findSymbolDefinition :: Text -> Text -> [IrkFilePos]
 findSymbolDefinition symbol =
   searchForMatch $
-    -- Use 'try' here to avoid consuming initial whitespace in case we don't match
-    try (findFuncDef symbol)
+    findTopLevelAssignment symbol
+      <|>
+      -- Use 'try' here to avoid consuming initial whitespace in case we don't match
+      try (findFuncDef symbol)
       <|> findClassDef symbol
+
+findTopLevelAssignment :: Text -> Parser SourcePos
+findTopLevelAssignment name = do
+  pos <- getSourcePos
+  _ <- string name
+  _ <- hspace
+  _ <- char '='
+  _ <- hspace
+  return pos
 
 findClassDef :: Text -> Parser SourcePos
 findClassDef name = do

@@ -18,7 +18,7 @@ spec = do
       allPaths <- sequence searches
       allPaths
         `shouldBe` [ [],
-                     [IrkFile (os "test/data/python/test.py") False (Just 239) 1 Workspace],
+                     [IrkFile (os "test/data/python/test.py") False (Just 287) 1 Workspace],
                      [IrkFile (os "test/data/python/.venv/vendored.py") False (Just 0) 2 WorkspaceVendored],
                      []
                    ]
@@ -28,7 +28,7 @@ spec = do
       allPaths <- sequence searches
       allPaths
         `shouldBe` [ [IrkFile (os "test/data/python/foo.py") False Nothing 0 Workspace],
-                     [IrkFile (os "test/data/python/test.py") False (Just 239) 1 Workspace],
+                     [IrkFile (os "test/data/python/test.py") False (Just 287) 1 Workspace],
                      [IrkFile (os "test/data/python/.venv/vendored.py") False (Just 0) 2 WorkspaceVendored],
                      []
                    ]

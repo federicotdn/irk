@@ -21,3 +21,8 @@ class Ident5(Foo):
 
     class Ident6:
         ...
+
+IDENT7 = "foo"
+
+def test():
+    ident8 = "bar"

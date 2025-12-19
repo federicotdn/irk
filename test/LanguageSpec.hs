@@ -26,6 +26,8 @@ spec = do
       lFindSymbolDefinition py "ident4" pythonExample `shouldBe` [IrkFilePos file 13 8]
       lFindSymbolDefinition py "Ident5" pythonExample `shouldBe` [IrkFilePos file 18 6]
       lFindSymbolDefinition py "Ident6" pythonExample `shouldBe` [IrkFilePos file 21 10]
+      lFindSymbolDefinition py "IDENT7" pythonExample `shouldBe` [IrkFilePos file 24 0]
+      lFindSymbolDefinition py "ident8" pythonExample `shouldBe` []
 
     it "gets the symbol at a position correctly" $ do
       lSymbolAtPosition py "" (IrkFilePos file 0 0) `shouldBe` Nothing
