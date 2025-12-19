@@ -27,7 +27,7 @@ import System.OsString (OsString, isSuffixOf)
 import Text.Megaparsec (Parsec, atEnd, optional, parse, takeWhileP, try)
 import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Pos (SourcePos, sourceColumn, sourceLine, unPos)
-import Types (IrkFile (..), IrkFilePos (..), emptyFile)
+import Types (IrkFile (..), IrkFilePos (..), file)
 import Utils (extractLine, oss)
 
 type Parser = Parsec Void Text
@@ -64,6 +64,7 @@ recurseDirectory filterby dir = do
     writeTQueue queue $
       IrkFile
         { iPath = iPath dir,
+          iDir = True,
           iFileSize = Nothing,
           iDepth = 0,
           iArea = iArea dir
@@ -89,9 +90,9 @@ recurseDirectory filterby dir = do
               metadata <- getFileMetadata path
               let isDir = fileTypeFromMetadata metadata `elem` [Directory, DirectoryLink]
               let fileSize = if isDir then Nothing else Just $ fileSizeFromMetadata metadata
-              return IrkFile {iPath = path, iFileSize = fileSize, iDepth = depth', iArea = iArea next}
+              return IrkFile {iPath = path, iDir = isDir, iFileSize = fileSize, iDepth = depth', iArea = iArea next}
 
-            let (p1, p2) = partition (isNothing . iFileSize) entries'
+            let (p1, p2) = partition iDir entries'
             -- TODO: Refactor filter system
             let directories = filter (\d -> baseFilter depth' (iPath d) True && filterby depth' (iPath d) True) p1
             let files = filter (\f -> baseFilter depth' (iPath f) False && filterby depth' (iPath f) False) p2
@@ -138,7 +139,7 @@ searchForMatchInner parser = loop []
             Just pos -> do
               let line = unPos (sourceLine pos) - 1
               let column = unPos (sourceColumn pos) - 1
-              return [IrkFilePos emptyFile line column]
+              return [IrkFilePos file line column]
             Nothing -> return []
           _ <- skipLine
           loop (matches ++ newMatches)

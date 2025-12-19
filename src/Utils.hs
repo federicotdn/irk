@@ -14,16 +14,16 @@ import qualified Data.ByteString as BS
 import Data.Function (on)
 import Data.List (maximumBy)
 import Data.Text (Text)
-import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import System.Directory.OsPath (getFileSize)
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error (tryIOError)
 import System.IO.MMap (mmapFileByteString)
 import System.OsPath (OsPath, decodeUtf, unsafeEncodeUtf)
 import System.OsString (OsString, isPrefixOf)
 import qualified System.OsString as OS
-import Types (IrkFilePos (..), IrkFile(..))
+import Types (IrkFile (..), IrkFilePos (..))
 
 -- File size thresholds for reading strategy
 maxFileSize :: Integer
@@ -47,7 +47,9 @@ ePutStrLn = hPutStrLn stderr
 fileByteString :: IrkFile -> IO (Maybe BS.ByteString)
 fileByteString f = do
   path <- decodeUtf $ iPath f
-  let size = fromMaybe 0 (iFileSize f)
+  size <- case iFileSize f of
+    Just s -> pure s
+    Nothing -> getFileSize $ iPath f
   case size of
     0 -> return Nothing
     _

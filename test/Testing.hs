@@ -3,13 +3,12 @@ module Testing (readTestFile, readTextFile) where
 import Data.Maybe (fromJust)
 import Data.Text (Text)
 import System.FilePath ((</>))
+import Types (IrkFile (..), file)
 import Utils (fileText, os)
-import Types (IrkFile(..), emptyFile)
 
 readTextFile :: FilePath -> IO Text
 readTextFile path = do
-  -- Using Just 1 will force the fileText function to read the file.
-  let f = emptyFile { iPath = os path, iFileSize = Just 1 }
+  let f = file {iPath = os path}
   contents <- fileText f
   return $ fromJust contents
 

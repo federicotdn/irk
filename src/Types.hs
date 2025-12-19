@@ -2,7 +2,7 @@ module Types
   ( IrkFile (..),
     IrkFilePos (..),
     IrkFileArea (..),
-    emptyFile,
+    file,
     workspaceRoot,
   )
 where
@@ -20,6 +20,7 @@ data IrkFileArea
 -- | Represents a file or a directory.
 data IrkFile = IrkFile
   { iPath :: OsPath,
+    iDir :: Bool,
     iFileSize :: Maybe Integer, -- If Nothing, then this is a directory
     iDepth :: Int, -- Depth from workspace root (0 is the workspace)
     iArea :: IrkFileArea
@@ -30,8 +31,8 @@ data IrkFile = IrkFile
 -- | Both values are 0-indexed, like in LSP.
 data IrkFilePos = IrkFilePos IrkFile Int Int deriving (Show, Eq)
 
-emptyFile :: IrkFile
-emptyFile = IrkFile {iPath = unsafeEncodeUtf "", iFileSize = Just 0, iDepth = 0, iArea = Workspace}
+file :: IrkFile
+file = IrkFile {iPath = unsafeEncodeUtf "", iDir = False, iFileSize = Nothing, iDepth = 0, iArea = Workspace}
 
 workspaceRoot :: IrkFileArea -> OsPath -> IrkFile
-workspaceRoot area path = IrkFile {iPath = path, iFileSize = Nothing, iDepth = 0, iArea = area}
+workspaceRoot area path = IrkFile {iPath = path, iDir = True, iFileSize = Nothing, iDepth = 0, iArea = area}

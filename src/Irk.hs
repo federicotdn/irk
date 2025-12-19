@@ -13,7 +13,7 @@ import Infix (isInfixOfC)
 import Language (Language, lFindSymbolDefinition, lSearchPath, lSymbolAtPosition)
 import System.OsPath (OsPath)
 import System.OsString (empty)
-import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..), emptyFile, workspaceRoot)
+import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..), file, workspaceRoot)
 import Utils (fileByteString, longestPrefix)
 
 searchPaths :: Language -> Maybe OsPath -> [OsPath] -> [IO [IrkFile]]
@@ -21,7 +21,7 @@ searchPaths lang mcurrent workspaces =
   let current = fromMaybe empty mcurrent
       mactiveWorkspace = longestPrefix current workspaces
       otherWorkspaces = filter (\w -> Just w /= mactiveWorkspace) workspaces
-      currentPath = maybe [] (\path -> [workspaceRoot Workspace path]) mcurrent
+      currentPath = maybe [] (\path -> [file {iPath = path}]) mcurrent
    in -- Don't actually run the file searches, but rather build the
       -- IO [FilePathKind] that can be later evaluated to get a list
       -- of paths.
@@ -30,7 +30,7 @@ searchPaths lang mcurrent workspaces =
         ++ map (lSearchPath lang . workspaceRoot WorkspaceVendored) (maybeToList mactiveWorkspace)
         ++ map (lSearchPath lang . workspaceRoot Workspace) otherWorkspaces
         ++ map (lSearchPath lang . workspaceRoot WorkspaceVendored) otherWorkspaces
-        ++ [lSearchPath lang emptyFile {iArea = External}]
+        ++ [lSearchPath lang file {iArea = External}]
 
 symbolAtPosition :: Language -> Text -> IrkFilePos -> Maybe Text
 symbolAtPosition = lSymbolAtPosition

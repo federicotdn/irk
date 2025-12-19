@@ -20,7 +20,7 @@ import Irk (findSymbolDefinition, searchPaths, symbolAtPosition)
 import LSP
 import Language (languageByPath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
-import Types (IrkFile (..), IrkFilePos (..), emptyFile)
+import Types (IrkFile (..), IrkFilePos (..), file)
 import Utils (ePutStrLn, fileText)
 
 newtype ServerOptions = ServerOptions {sVerbose :: Bool}
@@ -63,11 +63,11 @@ handleTextDocDefinition srv rid mparams = do
     Just params@(Object _) -> do
       let textDoc = jsonGetOr params "textDocument" $ object []
       let muri = jsonGet textDoc "uri" :: Maybe URI
-      let mpos = (\(Position l c) -> IrkFilePos emptyFile l c) <$> jsonGet params "position"
+      let mpos = (\(Position l c) -> IrkFilePos file l c) <$> jsonGet params "position"
       let mlang = muri >>= languageByPath . pathFromURI
 
       msource <- case muri of
-        Just uri -> fileText $ emptyFile {iPath = pathFromURI uri}
+        Just uri -> fileText $ file {iPath = pathFromURI uri}
         Nothing -> pure Nothing
 
       msymbol <- case (msource, mlang, mpos) of
