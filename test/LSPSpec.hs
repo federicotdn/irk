@@ -83,3 +83,18 @@ spec = do
     it "extracts the path from an URI correctly" $ do
       let uri = fileURIFromStr "file:///foo/bar.txt"
       pathFromURI uri `shouldBe` os "/foo/bar.txt"
+
+    it "handles Windows URIs with URL-encoded colons" $ do
+      let uri = fileURIFromStr "file:///c%3A/Users/test/file.hs"
+      pathFromURI uri `shouldBe` os "c:/Users/test/file.hs"
+
+  describe "uriFromPath" $ do
+    it "converts Windows paths to URIs correctly" $ do
+      let path = os "c:/Users/test/file.hs"
+      let uri = uriFromPath path
+      uri `shouldBe` fileURIFromStr "file:///c:/Users/test/file.hs"
+
+    it "converts Windows paths with backslashes to URIs correctly" $ do
+      let path = os "c:\\Users\\test\\file.hs"
+      let uri = uriFromPath path
+      uri `shouldBe` fileURIFromStr "file:///c:/Users/test/file.hs"

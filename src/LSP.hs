@@ -15,6 +15,7 @@ module LSP
     locationFromFilePos,
     rangeFromFilePos,
     pathFromURI,
+    uriFromPath,
     readMessage,
     writeMessage,
     response,
@@ -30,7 +31,7 @@ import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Char8 as BLC
-import Data.Char (isSpace, toLower)
+import Data.Char (chr, digitToInt, isHexDigit, isSpace, toLower)
 import Data.List (dropWhileEnd, find, isPrefixOf)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
@@ -53,6 +54,14 @@ headerContentType = "Content-Type"
 validContentTypes :: [String]
 validContentTypes = ["utf-8", "utf8"]
 
+-- | URL decode a string, converting %XX hex sequences to characters
+urlDecode :: String -> String
+urlDecode [] = []
+urlDecode ('%' : h1 : h2 : rest)
+  | isHexDigit h1 && isHexDigit h2 =
+      chr (digitToInt h1 * 16 + digitToInt h2) : urlDecode rest
+urlDecode (c : rest) = c : urlDecode rest
+
 newtype URI = FileURI OsPath deriving (Show, Eq)
 
 instance FromJSON URI where
@@ -70,10 +79,28 @@ instance ToJSON URI where
   toEncoding = toEncoding . toJSON
 
 pathFromURI :: URI -> OsPath
-pathFromURI (FileURI s) = fromMaybe s (OS.stripPrefix (os "file://") s)
+pathFromURI (FileURI s) = case OS.decodeUtf s of
+  Just str ->
+    let decoded = urlDecode str
+        withoutScheme = if "file://" `isPrefixOf` decoded
+                        then drop 7 decoded  -- drop "file://"
+                        else decoded
+        -- On Windows, file:///c:/... should become c:/...
+        withoutLeadingSlash = case withoutScheme of
+          '/' : drive : ':' : rest | drive `elem` ['a'..'z'] || drive `elem` ['A'..'Z'] -> drive : ':' : rest
+          p -> p
+    in unsafeEncodeUtf withoutLeadingSlash
+  Nothing -> fromMaybe s (OS.stripPrefix (os "file://") s)
 
 uriFromPath :: OsPath -> URI
-uriFromPath path = FileURI $ os "file://" <> path
+uriFromPath path = case OS.decodeUtf path of
+  Just str ->
+    let normalized = case str of
+          drive : ':' : rest | drive `elem` ['a'..'z'] || drive `elem` ['A'..'Z'] ->
+            "file:///" ++ drive : ':' : map (\c -> if c == '\\' then '/' else c) rest
+          _ -> "file://" ++ str
+    in FileURI $ unsafeEncodeUtf normalized
+  Nothing -> FileURI $ os "file://" <> path
 
 data Position = Position {pLine :: Int, pCharacter :: Int} deriving (Show, Generic)
 
