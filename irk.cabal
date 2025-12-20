@@ -1,20 +1,14 @@
 cabal-version:      3.0
 name:               irk
 version:            0.1.0.0
-
--- A short (one-line) description of the package.
--- synopsis:
--- A longer description of the package.
--- description:
-
-license:             Apache-2.0
+license:            Apache-2.0
 license-file:       LICENSE
 author:             Federico Tedin
 maintainer:         federicotedin@gmail.com
 build-type:         Simple
 
 common warnings
-    ghc-options:      -Wall
+    ghc-options:    -Wall
 
 common shared-deps
                     -- Haskell org:
