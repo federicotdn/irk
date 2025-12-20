@@ -81,6 +81,7 @@ spec = do
 
   describe "pathFromURI" $ do
     it "handles absolute Windows URIs with URL-encoded colons" $ do
+      -- NOTE: This test will not actually pass when run on Windows.
       let decoded = parse parseJSON "file:///c%3A/Users/test/file.hs" :: Result URI
       pathFromURI <$> decoded `shouldBe` Success (os "c:/Users/test/file.hs")
 
