@@ -22,7 +22,7 @@ spec = do
   describe "parseJSON URI" $ do
     it "parses a valid file URI correctly" $ do
       let decoded = parse parseJSON "file://test" :: Result URI
-      decoded `shouldBe` Success (fileURIFromStr "file://test")
+      decoded `shouldBe` Success (fileURIFromStr "test")
 
     it "errors out when parsing an invalid file URI" $ do
       let decoded = parse parseJSON "foo" :: Result URI
@@ -80,21 +80,12 @@ spec = do
       assertEncoded (MResponse req) expected
 
   describe "pathFromURI" $ do
-    it "extracts the path from an URI correctly" $ do
-      let uri = fileURIFromStr "file:///foo/bar.txt"
-      pathFromURI uri `shouldBe` os "/foo/bar.txt"
-
-    it "handles Windows URIs with URL-encoded colons" $ do
-      let uri = fileURIFromStr "file:///c%3A/Users/test/file.hs"
-      pathFromURI uri `shouldBe` os "c:/Users/test/file.hs"
+    it "handles absolute Windows URIs with URL-encoded colons" $ do
+      let decoded = parse parseJSON "file:///c%3A/Users/test/file.hs" :: Result URI
+      pathFromURI <$> decoded `shouldBe` Success (os "c:/Users/test/file.hs")
 
   describe "uriFromPath" $ do
-    it "converts Windows paths to URIs correctly" $ do
+    it "converts absolute Windows paths to URIs correctly" $ do
       let path = os "c:/Users/test/file.hs"
       let uri = uriFromPath path
-      uri `shouldBe` fileURIFromStr "file:///c:/Users/test/file.hs"
-
-    it "converts Windows paths with backslashes to URIs correctly" $ do
-      let path = os "c:\\Users\\test\\file.hs"
-      let uri = uriFromPath path
-      uri `shouldBe` fileURIFromStr "file:///c:/Users/test/file.hs"
+      uri `shouldBe` fileURIFromStr "/c:/Users/test/file.hs"

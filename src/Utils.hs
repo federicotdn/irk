@@ -5,8 +5,10 @@ module Utils
     extractLine,
     os,
     oss,
+    osc,
     longestPrefix,
     ignoreIOError,
+    isWindowsAbs,
   )
 where
 
@@ -20,8 +22,8 @@ import System.Directory.OsPath (getFileSize)
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error (tryIOError)
 import System.IO.MMap (mmapFileByteString)
-import System.OsPath (OsPath, decodeUtf, unsafeEncodeUtf)
-import System.OsString (OsString, isPrefixOf)
+import System.OsPath (OsPath, decodeUtf, unsafeEncodeUtf, unsafeFromChar)
+import System.OsString (OsChar, OsString, isPrefixOf)
 import qualified System.OsString as OS
 import Types (IrkFile (..), IrkFilePos (..))
 
@@ -40,6 +42,10 @@ os = unsafeEncodeUtf
 -- | Like 'os', but for lists of 'String'.
 oss :: [String] -> [OsString]
 oss = map os
+
+-- | Like 'os', but for 'Char'.
+osc :: Char -> OsChar
+osc = unsafeFromChar
 
 ePutStrLn :: String -> IO ()
 ePutStrLn = hPutStrLn stderr
@@ -80,3 +86,10 @@ ignoreIOError op = do
   case result of
     Right val -> return $ Just val
     Left _ -> return Nothing
+
+-- | Checks whether a path appears like 'C:/some/path'.
+isWindowsAbs :: OsPath -> Bool
+isWindowsAbs uri =
+  OS.length uri >= 2
+    && OS.toChar (OS.head uri) `elem` ['a' .. 'z'] ++ ['A' .. 'Z']
+    && OS.toChar (uri `OS.index` 1) == ':'

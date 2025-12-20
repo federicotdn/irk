@@ -32,16 +32,16 @@ import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Char8 as BLC
 import Data.Char (chr, digitToInt, isHexDigit, isSpace, toLower)
-import Data.List (dropWhileEnd, find, isPrefixOf)
+import Data.List (dropWhileEnd, find, stripPrefix)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import GHC.Generics
 import System.IO (hWaitForInput, stdin)
-import System.OsPath (OsPath, unsafeEncodeUtf)
+import System.OsPath (OsPath, pathSeparator, unsafeEncodeUtf)
 import qualified System.OsString as OS
 import Text.Read (readMaybe)
 import Types (IrkFile (..), IrkFilePos (..))
-import Utils (os)
+import Utils (isWindowsAbs, os, osc)
 
 data Header = Header String String deriving (Show)
 
@@ -56,51 +56,47 @@ validContentTypes = ["utf-8", "utf8"]
 
 -- | URL decode a string, converting %XX hex sequences to characters
 urlDecode :: String -> String
-urlDecode [] = []
+urlDecode "" = ""
 urlDecode ('%' : h1 : h2 : rest)
   | isHexDigit h1 && isHexDigit h2 =
       chr (digitToInt h1 * 16 + digitToInt h2) : urlDecode rest
 urlDecode (c : rest) = c : urlDecode rest
 
+-- TODO: Should this be Text instead?
+-- A URI is not an OS path.
 newtype URI = FileURI OsPath deriving (Show, Eq)
 
 instance FromJSON URI where
   parseJSON v = do
     s <- parseJSON v
-    if "file://" `isPrefixOf` s
-      then return $ FileURI (unsafeEncodeUtf s)
-      else
-        fail "malformed URI"
+    case stripPrefix "file://" s of
+      Just stripped -> return $ FileURI (unsafeEncodeUtf $ urlDecode stripped)
+      Nothing -> fail "malformed URI"
 
 instance ToJSON URI where
-  toJSON (FileURI s) = case OS.decodeUtf s of
-    Just str -> toJSON str
-    Nothing -> toJSON ("" :: String)
+  toJSON (FileURI s) = toJSON $ maybe "file://" ("file://" ++) (OS.decodeUtf s)
   toEncoding = toEncoding . toJSON
 
+isWindowsAbsURI :: URI -> Bool
+isWindowsAbsURI (FileURI s) =
+  OS.length s >= 1
+    && OS.toChar (OS.head s) == '/'
+    && isWindowsAbs (OS.tail s)
+
 pathFromURI :: URI -> OsPath
-pathFromURI (FileURI s) = case OS.decodeUtf s of
-  Just str ->
-    let decoded = urlDecode str
-        withoutScheme = if "file://" `isPrefixOf` decoded
-                        then drop 7 decoded  -- drop "file://"
-                        else decoded
-        -- On Windows, file:///c:/... should become c:/...
-        withoutLeadingSlash = case withoutScheme of
-          '/' : drive : ':' : rest | drive `elem` ['a'..'z'] || drive `elem` ['A'..'Z'] -> drive : ':' : rest
-          p -> p
-    in unsafeEncodeUtf withoutLeadingSlash
-  Nothing -> fromMaybe s (OS.stripPrefix (os "file://") s)
+pathFromURI uri@(FileURI s) =
+  let path =
+        if isWindowsAbsURI uri
+          then fromMaybe path (OS.stripPrefix (os "/") s)
+          else s
+   in OS.map (\c -> if OS.toChar c == '/' then pathSeparator else c) path
 
 uriFromPath :: OsPath -> URI
-uriFromPath path = case OS.decodeUtf path of
-  Just str ->
-    let normalized = case str of
-          drive : ':' : rest | drive `elem` ['a'..'z'] || drive `elem` ['A'..'Z'] ->
-            "file:///" ++ drive : ':' : map (\c -> if c == '\\' then '/' else c) rest
-          _ -> "file://" ++ str
-    in FileURI $ unsafeEncodeUtf normalized
-  Nothing -> FileURI $ os "file://" <> path
+uriFromPath path
+  | isWindowsAbs path = FileURI $ os "/" <> normalized
+  | otherwise = FileURI normalized
+  where
+    normalized = OS.map (\c -> if c == pathSeparator then osc '/' else c) path
 
 data Position = Position {pLine :: Int, pCharacter :: Int} deriving (Show, Generic)
 
