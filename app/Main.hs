@@ -24,7 +24,7 @@ import Options.Applicative
     (<**>),
   )
 import Server (ServerOptions (..), runServer)
-import System.IO (BufferMode (..), hSetBuffering, stderr, stdin, stdout)
+import System.IO (BufferMode (..), hSetBinaryMode, hSetBuffering, stderr, stdin, stdout)
 
 data Options = Options
   { oVerbose :: Bool,
@@ -69,6 +69,9 @@ main = do
   options <- execParser fullParser
   case oCommand options of
     Server serverOptions -> do
+      hSetBinaryMode stdin True
+      hSetBinaryMode stdout True
+      hSetBinaryMode stderr True
       hSetBuffering stdin NoBuffering
       hSetBuffering stdout NoBuffering
       hSetBuffering stderr NoBuffering
