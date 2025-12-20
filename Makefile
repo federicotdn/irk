@@ -12,8 +12,5 @@ test:
 repl:
 	cabal repl
 
-install:
-	cabal install exe:irk -j --installdir=$${HOME}/.local/bin --overwrite-policy=always $(CABAL_EXTRA_FLAGS)
-
 fmt:
 	@ormolu -m inplace $$(git ls-files '*.hs')
