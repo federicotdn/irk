@@ -54,7 +54,12 @@ headerContentType = "Content-Type"
 validContentTypes :: [String]
 validContentTypes = ["utf-8", "utf8"]
 
--- | URL decode a string, converting %XX hex sequences to characters
+urlEncode :: String -> String
+urlEncode "" = ""
+urlEncode (':' : rest) = "%3A" ++ urlEncode rest
+urlEncode (' ' : rest) = "%20" ++ urlEncode rest
+urlEncode (c : rest) = c : urlEncode rest
+
 urlDecode :: String -> String
 urlDecode "" = ""
 urlDecode ('%' : h1 : h2 : rest)
@@ -74,7 +79,7 @@ instance FromJSON URI where
       Nothing -> fail "malformed URI"
 
 instance ToJSON URI where
-  toJSON (FileURI s) = toJSON $ maybe "file://" ("file://" ++) (OS.decodeUtf s)
+  toJSON (FileURI s) = toJSON $ maybe "file://" (("file://" ++) . urlEncode) (OS.decodeUtf s)
   toEncoding = toEncoding . toJSON
 
 isWindowsAbsURI :: URI -> Bool
