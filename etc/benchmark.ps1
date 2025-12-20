@@ -1,4 +1,3 @@
-#!/usr/bin/env pwsh
 # PowerShell port of benchmark.sh for Windows compatibility
 
 param(
@@ -108,11 +107,12 @@ Set-Location $rootDir
 
 # Build command
 $irkFlagsStr = $irkFlags -join " "
-$cmd = "irk find -w '$repoPath' -l '$language' '$symbol' $irkFlagsStr $rtsFlags"
+# Use double quotes for the outer string and escaped double quotes for arguments
+$cmd = "irk find -w `"$repoPath`" -l `"$language`" `"$symbol`" $irkFlagsStr $rtsFlags".Trim()
 
 if ($useRg) {
     Write-Host "running rg..."
-    $rgCmd = "rg -t '$language' --word-regexp '$symbol' '$repoPath' --column --no-heading"
+    $rgCmd = "rg -t `"$language`" --word-regexp `"$symbol`" `"$repoPath`" --column --no-heading"
     try {
         Invoke-Expression $rgCmd
     } catch {
@@ -124,10 +124,12 @@ if ($useRg) {
     hyperfine -i --warmup 2 $rgCmd
 }
 elseif ($useProfiling) {
+    $installDir = Join-Path $env:USERPROFILE ".local\bin"
+    $cabalCmd = "cabal install exe:irk -j --installdir=`"$installDir`" --overwrite-policy=always"
     if ($cabalExtraFlags) {
-        $env:CABAL_EXTRA_FLAGS = $cabalExtraFlags
+        $cabalCmd += " $cabalExtraFlags"
     }
-    make install
+    Invoke-Expression $cabalCmd
 
     if (Test-Path "irk.prof") {
         Remove-Item "irk.prof"
@@ -138,7 +140,8 @@ elseif ($useProfiling) {
     Measure-Command { Invoke-Expression $cmd }
 }
 else {
-    make install
+    $installDir = Join-Path $env:USERPROFILE ".local\bin"
+    Invoke-Expression "cabal install exe:irk -j --installdir=`"$installDir`" --overwrite-policy=always"
 
     Print-Separator
     Write-Host "running irk..."
