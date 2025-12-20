@@ -9,7 +9,7 @@ import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, getSourcePos, (<|>))
 import Text.Megaparsec.Char (char, space, space1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
-import Utils (oss, os)
+import Utils (os, oss)
 
 extensions :: [OsString]
 extensions = oss [".hs", ".hsc"]

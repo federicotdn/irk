@@ -4,7 +4,6 @@
 
 ```elisp
 (setq eglot-report-progress t
-      eglot-ignored-server-capabilities '(:inlayHintProvider :documentOnTypeFormattingProvider)
       eglot-events-buffer-config '(:size 1000000 :format full)
-      jsonrpc-default-request-timeout 60)
+      jsonrpc-default-request-timeout 30)
 ```

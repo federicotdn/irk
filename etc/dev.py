@@ -201,7 +201,7 @@ def benchmark(
         run("hyperfine", "--warmup", "2", cmd_str)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
 
