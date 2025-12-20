@@ -67,7 +67,7 @@ urlDecode ('%' : h1 : h2 : rest)
       chr (digitToInt h1 * 16 + digitToInt h2) : urlDecode rest
 urlDecode (c : rest) = c : urlDecode rest
 
--- TODO: Should this be Text instead?
+-- TODO: Should this be String instead?
 -- A URI is not an OS path.
 newtype URI = FileURI OsPath deriving (Show, Eq)
 
