@@ -39,6 +39,7 @@ library
     include-dirs:     cbits
     install-includes: infix.h
     cc-options:       -mavx2
+    hs-source-dirs:   src
     exposed-modules:  Irk
                     , Server
                     , CLI
@@ -52,21 +53,24 @@ library
                     , Utils
                     , Infix
                     , Types
-    hs-source-dirs:   src
 
 executable irk
     import:           warnings
                     , shared-deps
     main-is:          Main.hs
-    hs-source-dirs:   app
     build-depends:    irk
     ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+    hs-source-dirs:   app
 
 test-suite test-irk
     import:           warnings
                     , shared-deps
     type:             exitcode-stdio-1.0
     main-is:          Spec.hs
+    build-depends:    irk
+                    , hspec ^>=2.11.14
+                    , aeson-pretty ^>=0.8.10
+    hs-source-dirs:   test
     other-modules:    IrkSpec
                     , ServerSpec
                     , LSPSpec
@@ -74,7 +78,3 @@ test-suite test-irk
                     , UtilsSpec
                     , InfixSpec
                     , Testing
-    hs-source-dirs:   test
-    build-depends:    irk
-                    , hspec ^>=2.11.14
-                    , aeson-pretty ^>=0.8.10
