@@ -1,11 +1,14 @@
 module CLI (runFind, FindOptions (..)) where
 
+import Control.Exception (try)
 import Control.Monad (forM_)
 import qualified Data.Text as T
 import Irk (findSymbolDefinition, searchPaths)
 import Language (languageByName)
 import System.Exit (ExitCode (..), exitWith)
-import System.OsString (decodeUtf, unsafeEncodeUtf)
+import System.OsPath (OsPath)
+import System.OsPath.Encoding (EncodingException)
+import System.OsString (decodeUtf, encodeUtf)
 import Types (IrkFile (..), IrkFilePos (..))
 import Utils (ePutStrLn, ignoreIOError)
 
@@ -18,11 +21,12 @@ data FindOptions = FindOptions
 
 runFind :: FindOptions -> IO ()
 runFind options = do
-  let workspace = unsafeEncodeUtf (fWorkspace options)
+  eworkspace <- try $ encodeUtf (fWorkspace options) :: IO (Either EncodingException OsPath)
   let language = fLanguage options
   let symbol = T.pack (fSymbol options)
-  case languageByName language of
-    Just lang -> do
+  let mlanguage = languageByName language
+  case (mlanguage, eworkspace) of
+    (Just lang, Right workspace) -> do
       let searches = searchPaths lang Nothing [workspace]
       positions <- findSymbolDefinition lang symbol searches
       forM_ positions $ \(IrkFilePos f l c) -> do
@@ -30,6 +34,9 @@ runFind options = do
         case result of
           Just decoded -> ePutStrLn $ decoded ++ ":" ++ show (l + 1) ++ ":" ++ show (c + 1)
           Nothing -> pure ()
-    Nothing -> do
+    (Just _, Left _) -> do
+      ePutStrLn "error: unable to encode workspace path"
+      exitWith (ExitFailure 1)
+    (Nothing, _) -> do
       ePutStrLn "error: unknown language"
       exitWith (ExitFailure 1)

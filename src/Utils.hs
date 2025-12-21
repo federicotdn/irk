@@ -9,9 +9,11 @@ module Utils
     longestPrefix,
     ignoreIOError,
     isWindowsAbs,
+    tryEncoding,
   )
 where
 
+import Control.Exception (catch)
 import qualified Data.ByteString as BS
 import Data.Function (on)
 import Data.List (maximumBy)
@@ -23,6 +25,7 @@ import System.IO (hPutStrLn, stderr)
 import System.IO.Error (tryIOError)
 import System.IO.MMap (mmapFileByteString)
 import System.OsPath (OsPath, decodeUtf, unsafeEncodeUtf, unsafeFromChar)
+import System.OsPath.Encoding (EncodingException)
 import System.OsString (OsChar, OsString, isPrefixOf)
 import qualified System.OsString as OS
 import Types (IrkFile (..), IrkFilePos (..))
@@ -87,9 +90,15 @@ ignoreIOError op = do
     Right val -> return $ Just val
     Left _ -> return Nothing
 
--- | Checks whether a path appears like 'C:/some/path'.
+tryEncoding :: IO a -> IO (Maybe a)
+tryEncoding op = (Just <$> op) `catch` handler
+  where
+    handler :: EncodingException -> IO (Maybe b)
+    handler _ = return Nothing
+
+-- | Checks whether a path appears like 'C:\some\path'.
 isWindowsAbs :: OsPath -> Bool
-isWindowsAbs uri =
-  OS.length uri >= 2
-    && OS.toChar (OS.head uri) `elem` ['a' .. 'z'] ++ ['A' .. 'Z']
-    && OS.toChar (uri `OS.index` 1) == ':'
+isWindowsAbs path =
+  OS.length path >= 2
+    && OS.toChar (OS.head path) `elem` ['a' .. 'z'] ++ ['A' .. 'Z']
+    && OS.toChar (path `OS.index` 1) == ':'

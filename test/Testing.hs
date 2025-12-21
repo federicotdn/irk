@@ -1,10 +1,15 @@
-module Testing (readTestFile, readTextFile) where
+module Testing (success, readTestFile, readTextFile) where
 
+import Data.Aeson.Types (Result (..))
 import Data.Maybe (fromJust)
 import Data.Text (Text)
 import System.FilePath ((</>))
 import Types (IrkFile (..), file)
 import Utils (fileText, os)
+
+success :: Result a -> a
+success (Error _) = error "expected Success, but got Error"
+success (Success x) = x
 
 readTextFile :: FilePath -> IO Text
 readTextFile path = do

@@ -23,13 +23,23 @@ searchPaths lang mcurrent workspaces =
       otherWorkspaces = filter (\w -> Just w /= mactiveWorkspace) workspaces
       currentPath = maybe [] (\path -> [file {iPath = path}]) mcurrent
    in -- Don't actually run the file searches, but rather build the
-      -- IO [FilePathKind] that can be later evaluated to get a list
+      -- IO [IrkFile] that can be later evaluated to get a list
       -- of paths.
+      --
+      -- Search on the current file first. This is optional,
+      -- but in the context of LSP, it is assigned e.g. to the file
+      -- where the symbol whose definition is being searched
+      -- for was chosen by the user.
       pure currentPath
+        -- Then, on the workspace the current file belongs to.
         : map (lSearchPath lang . workspaceRoot Workspace) (maybeToList mactiveWorkspace)
+        -- Then, vendored files for that same workspace.
         ++ map (lSearchPath lang . workspaceRoot WorkspaceVendored) (maybeToList mactiveWorkspace)
+        -- Repeat the process for _all other_ workspaces.
         ++ map (lSearchPath lang . workspaceRoot Workspace) otherWorkspaces
+        -- Take their vendored files too.
         ++ map (lSearchPath lang . workspaceRoot WorkspaceVendored) otherWorkspaces
+        -- Finally, try searching on system-wide files.
         ++ [lSearchPath lang file {iArea = External}]
 
 symbolAtPosition :: Language -> Text -> IrkFilePos -> Maybe Text

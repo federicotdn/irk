@@ -13,7 +13,7 @@ import Control.Applicative ((<|>))
 import Control.Monad (when)
 import Data.Aeson (object, toJSON, (.=))
 import Data.Aeson.Types (Value (Array, Null, Object, String), emptyArray)
-import Data.Maybe (mapMaybe, maybeToList)
+import Data.Maybe (catMaybes, mapMaybe, maybeToList)
 import Data.Text (Text)
 import qualified Data.Vector as V
 import Irk (findSymbolDefinition, searchPaths, symbolAtPosition)
@@ -21,7 +21,7 @@ import LSP
 import Language (languageByPath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
 import Types (IrkFile (..), IrkFilePos (..), file)
-import Utils (ePutStrLn, fileText)
+import Utils (ePutStrLn, fileText, tryEncoding)
 
 newtype ServerOptions = ServerOptions {sVerbose :: Bool}
 
@@ -63,26 +63,33 @@ handleTextDocDefinition srv rid mparams = do
     Just params@(Object _) -> do
       let textDoc = jsonGetOr params "textDocument" $ object []
       let muri = jsonGet textDoc "uri" :: Maybe URI
+      muriPath <- case muri of
+        Just uri -> tryEncoding $ pathFromURI uri
+        Nothing -> pure Nothing
       let mpos = (\(Position l c) -> IrkFilePos file l c) <$> jsonGet params "position"
-      let mlang = muri >>= languageByPath . pathFromURI
+      let mlang = muriPath >>= languageByPath
 
-      msource <- case muri of
-        Just uri -> fileText $ file {iPath = pathFromURI uri}
+      msource <- case muriPath of
+        Just uriPath -> fileText $ file {iPath = uriPath}
         Nothing -> pure Nothing
 
       msymbol <- case (msource, mlang, mpos) of
         (Just source, Just lang, Just pos) -> pure $ symbolAtPosition lang source pos
         _ -> pure Nothing
 
-      case (muri, mlang, msource, msymbol) of
-        (Just uri, Just lang, Just _, Just symbol) -> do
-          let path = pathFromURI uri
-          let searches = searchPaths lang (Just path) $ map pathFromURI (workspaces srv)
+      case (muriPath, mlang, msource, msymbol) of
+        (Just uriPath, Just lang, Just _, Just symbol) -> do
+          let workspaceURIs = workspaces srv
+          mworkspaces <- mapM (tryEncoding . pathFromURI) workspaceURIs
+
+          let searches = searchPaths lang (Just uriPath) (catMaybes mworkspaces)
           positions <- findSymbolDefinition lang symbol searches
-          let locations = map locationFromFilePos positions
+
+          mlocations <- mapM (tryEncoding . locationFromFilePos) positions
+          let locations = catMaybes mlocations
 
           returnResponse srv rid $ Array (V.fromList $ map toJSON locations)
-        (Nothing, _, _, _) -> returnError srv rid InvalidRequest "missing document uri" Nothing
+        (Nothing, _, _, _) -> returnError srv rid InvalidRequest "missing document uri, or uri encoding failed" Nothing
         (_, Nothing, _, _) -> returnError srv rid InvalidRequest "unsupported language" Nothing
         (_, _, Nothing, _) -> returnError srv rid InvalidRequest "unable to read document, or invalid position" Nothing
         (_, _, _, Nothing) -> returnResponse srv rid emptyArray

@@ -6,7 +6,8 @@ import Data.Aeson.Types (Result (..), ToJSON, Value (Null), emptyArray, emptyObj
 import qualified Data.ByteString.Lazy.Char8 as BL
 import LSP
 import Test.Hspec
-import Utils (os)
+import Testing (success)
+import Utils (os, tryEncoding)
 
 assertEncoded :: (ToJSON a) => a -> String -> Expectation
 assertEncoded msg expected =
@@ -14,15 +15,12 @@ assertEncoded msg expected =
   where
     config = defConfig {confCompare = compare}
 
-fileURIFromStr :: String -> URI
-fileURIFromStr s = FileURI $ os s
-
 spec :: Spec
 spec = do
   describe "parseJSON URI" $ do
     it "parses a valid file URI correctly" $ do
-      let decoded = parse parseJSON "file://test" :: Result URI
-      decoded `shouldBe` Success (fileURIFromStr "test")
+      let decoded = success $ parse parseJSON "file://test" :: URI
+      decoded `shouldBe` FileURI "test"
 
     it "errors out when parsing an invalid file URI" $ do
       let decoded = parse parseJSON "foo" :: Result URI
@@ -80,13 +78,24 @@ spec = do
       assertEncoded (MResponse req) expected
 
   describe "pathFromURI" $ do
+    it "handles absolute URIs for Unix" $ do
+      let decoded = success $ parse parseJSON "file:///home/user/test.hs" :: URI
+      result <- tryEncoding $ pathFromURI decoded
+      result `shouldBe` Just (os "/home/user/test.hs")
+
     it "handles absolute Windows URIs with URL-encoded colons" $ do
       -- NOTE: This test will not actually pass when run on Windows.
-      let decoded = parse parseJSON "file:///c%3A/Users/test/file.hs" :: Result URI
-      pathFromURI <$> decoded `shouldBe` Success (os "c:/Users/test/file.hs")
+      let decoded = success $ parse parseJSON "file:///c%3A/Users/test/file.hs" :: URI
+      result <- tryEncoding $ pathFromURI decoded
+      result `shouldBe` Just (os "c:/Users/test/file.hs")
 
   describe "uriFromPath" $ do
+    it "converts absolute Unix paths to URIs correctly" $ do
+      let path = os "/home/test/foo.py"
+      uri <- tryEncoding $ uriFromPath path
+      uri `shouldBe` Just (FileURI "/home/test/foo.py")
+
     it "converts absolute Windows paths to URIs correctly" $ do
       let path = os "c:/Users/test/file.hs"
-      let uri = uriFromPath path
-      uri `shouldBe` fileURIFromStr "/c:/Users/test/file.hs"
+      uri <- tryEncoding $ uriFromPath path
+      uri `shouldBe` Just (FileURI "/c:/Users/test/file.hs")

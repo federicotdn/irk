@@ -26,6 +26,7 @@ module LSP
 where
 
 import Control.Applicative ((<|>))
+import Control.Monad.Catch (MonadThrow)
 import Data.Aeson (FromJSON (parseJSON), Options (..), Result (..), ToJSON (toEncoding, toJSON), Value (..), decode, defaultOptions, encode, fromJSON, genericParseJSON, genericToEncoding, genericToJSON)
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
@@ -37,7 +38,7 @@ import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import GHC.Generics
 import System.IO (hWaitForInput, stdin)
-import System.OsPath (OsPath, pathSeparator, unsafeEncodeUtf)
+import System.OsPath (OsPath, pathSeparator)
 import qualified System.OsString as OS
 import Text.Read (readMaybe)
 import Types (IrkFile (..), IrkFilePos (..))
@@ -67,39 +68,35 @@ urlDecode ('%' : h1 : h2 : rest)
       chr (digitToInt h1 * 16 + digitToInt h2) : urlDecode rest
 urlDecode (c : rest) = c : urlDecode rest
 
--- TODO: Should this be String instead?
--- A URI is not an OS path.
-newtype URI = FileURI OsPath deriving (Show, Eq)
+newtype URI = FileURI String deriving (Show, Eq)
 
 instance FromJSON URI where
   parseJSON v = do
     s <- parseJSON v
     case stripPrefix "file://" s of
-      Just stripped -> return $ FileURI (unsafeEncodeUtf $ urlDecode stripped)
+      Just stripped -> return $ FileURI (urlDecode stripped)
       Nothing -> fail "malformed URI"
 
 instance ToJSON URI where
-  toJSON (FileURI s) = toJSON $ maybe "file://" (("file://" ++) . urlEncode) (OS.decodeUtf s)
+  toJSON (FileURI s) = toJSON $ "file://" ++ urlEncode s
   toEncoding = toEncoding . toJSON
 
-isWindowsAbsURI :: URI -> Bool
-isWindowsAbsURI (FileURI s) =
-  OS.length s >= 1
-    && OS.toChar (OS.head s) == '/'
-    && isWindowsAbs (OS.tail s)
+isWindowsAbsURI :: (MonadThrow m) => URI -> m Bool
+isWindowsAbsURI (FileURI s) = do
+  path <- OS.encodeUtf s
+  return $ OS.length path >= 1 && OS.head path == osc '/' && isWindowsAbs (OS.tail path)
 
-pathFromURI :: URI -> OsPath
-pathFromURI uri@(FileURI s) =
-  let path =
-        if isWindowsAbsURI uri
-          then fromMaybe path (OS.stripPrefix (os "/") s)
-          else s
-   in OS.map (\c -> if OS.toChar c == '/' then pathSeparator else c) path
+pathFromURI :: (MonadThrow m) => URI -> m OsPath
+pathFromURI uri@(FileURI s) = do
+  windowsAbsURI <- isWindowsAbsURI uri
+  let path = if windowsAbsURI then fromMaybe s (stripPrefix "/" s) else s
+  encoded <- OS.encodeUtf path
+  return $ OS.map (\c -> if OS.toChar c == '/' then pathSeparator else c) encoded
 
-uriFromPath :: OsPath -> URI
+uriFromPath :: (MonadThrow m) => OsPath -> m URI
 uriFromPath path
-  | isWindowsAbs path = FileURI $ os "/" <> normalized
-  | otherwise = FileURI normalized
+  | isWindowsAbs path = FileURI <$> OS.decodeUtf (os "/" <> normalized)
+  | otherwise = FileURI <$> OS.decodeUtf normalized
   where
     normalized = OS.map (\c -> if c == pathSeparator then osc '/' else c) path
 
@@ -129,8 +126,10 @@ instance ToJSON Range where
 
 data Location = Location {lUri :: URI, lRange :: Range} deriving (Show, Generic)
 
-locationFromFilePos :: IrkFilePos -> Location
-locationFromFilePos fp@(IrkFilePos f _ _) = Location {lUri = uriFromPath (iPath f), lRange = rangeFromFilePos fp}
+locationFromFilePos :: (MonadThrow m) => IrkFilePos -> m Location
+locationFromFilePos fp@(IrkFilePos f _ _) = do
+  uri <- uriFromPath (iPath f)
+  return $ Location {lUri = uri, lRange = rangeFromFilePos fp}
 
 instance FromJSON Location where
   parseJSON = genericParseJSON customOptions

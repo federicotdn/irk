@@ -27,6 +27,7 @@ common shared-deps
                     , async ^>=2.2.5
                     , optparse-applicative ^>=0.19.0
                     , mmap ^>=0.5.9
+                    , exceptions ^>=0.10.11
     default-extensions:   OverloadedStrings
                         , DeriveGeneric
                         , CApiFFI

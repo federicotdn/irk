@@ -7,7 +7,8 @@ module Types
   )
 where
 
-import System.OsPath (OsPath, unsafeEncodeUtf)
+import System.OsPath (OsPath)
+import System.OsString (empty)
 
 -- | Represents an area where a file can be looked for and
 -- | found in.
@@ -32,7 +33,7 @@ data IrkFile = IrkFile
 data IrkFilePos = IrkFilePos IrkFile Int Int deriving (Show, Eq)
 
 file :: IrkFile
-file = IrkFile {iPath = unsafeEncodeUtf "", iDir = False, iFileSize = Nothing, iDepth = 0, iArea = Workspace}
+file = IrkFile {iPath = empty, iDir = False, iFileSize = Nothing, iDepth = 0, iArea = Workspace}
 
 workspaceRoot :: IrkFileArea -> OsPath -> IrkFile
 workspaceRoot area path = IrkFile {iPath = path, iDir = True, iFileSize = Nothing, iDepth = 0, iArea = area}
