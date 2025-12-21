@@ -38,7 +38,7 @@ import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import GHC.Generics
 import System.IO (hWaitForInput, stdin)
-import System.OsPath (OsPath, pathSeparator)
+import System.OsPath (OsPath, normalise, pathSeparator)
 import qualified System.OsString as OS
 import Text.Read (readMaybe)
 import Types (IrkFile (..), IrkFilePos (..))
@@ -91,14 +91,14 @@ pathFromURI uri@(FileURI s) = do
   windowsAbsURI <- isWindowsAbsURI uri
   let path = if windowsAbsURI then fromMaybe s (stripPrefix "/" s) else s
   encoded <- OS.encodeUtf path
-  return $ OS.map (\c -> if OS.toChar c == '/' then pathSeparator else c) encoded
+  return $ normalise encoded
 
 uriFromPath :: (MonadThrow m) => OsPath -> m URI
 uriFromPath path
-  | isWindowsAbs path = FileURI <$> OS.decodeUtf (os "/" <> normalized)
-  | otherwise = FileURI <$> OS.decodeUtf normalized
+  | isWindowsAbs path = FileURI <$> OS.decodeUtf (os "/" <> uriPath)
+  | otherwise = FileURI <$> OS.decodeUtf uriPath
   where
-    normalized = OS.map (\c -> if c == pathSeparator then osc '/' else c) path
+    uriPath = OS.map (\c -> if c == pathSeparator then osc '/' else c) path
 
 data Position = Position {pLine :: Int, pCharacter :: Int} deriving (Show, Generic)
 

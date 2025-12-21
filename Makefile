@@ -12,5 +12,8 @@ test:
 repl:
 	cabal repl
 
+install:
+	uv run etc/dev.py install
+
 fmt:
 	@ormolu -m inplace $$(git ls-files '*.hs')

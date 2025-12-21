@@ -6,7 +6,7 @@ import qualified Data.Text as T
 import Irk (findSymbolDefinition, searchPaths)
 import Language (languageByName)
 import System.Exit (ExitCode (..), exitWith)
-import System.OsPath (OsPath)
+import System.OsPath (OsPath, normalise)
 import System.OsPath.Encoding (EncodingException)
 import System.OsString (decodeUtf, encodeUtf)
 import Types (IrkFile (..), IrkFilePos (..))
@@ -30,7 +30,7 @@ runFind options = do
       let searches = searchPaths lang Nothing [workspace]
       positions <- findSymbolDefinition lang symbol searches
       forM_ positions $ \(IrkFilePos f l c) -> do
-        result <- ignoreIOError (decodeUtf $ iPath f)
+        result <- ignoreIOError (decodeUtf . normalise $ iPath f)
         case result of
           Just decoded -> ePutStrLn $ decoded ++ ":" ++ show (l + 1) ++ ":" ++ show (c + 1)
           Nothing -> pure ()
