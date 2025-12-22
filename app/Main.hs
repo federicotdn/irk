@@ -68,12 +68,5 @@ main = do
           )
   options <- execParser fullParser
   case oCommand options of
-    Server serverOptions -> do
-      hSetBinaryMode stdin True
-      hSetBinaryMode stdout True
-      hSetBinaryMode stderr True
-      hSetBuffering stdin NoBuffering
-      hSetBuffering stdout NoBuffering
-      hSetBuffering stderr NoBuffering
-      runServer serverOptions {sVerbose = oVerbose options}
+    Server serverOptions -> runServer serverOptions {sVerbose = oVerbose options}
     Find findOptions -> runFind findOptions {fVerbose = oVerbose options}

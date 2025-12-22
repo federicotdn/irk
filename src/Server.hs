@@ -20,6 +20,7 @@ import Irk (findSymbolDefinition, searchPaths, symbolAtPosition)
 import LSP
 import Language (languageByPath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
+import Transport (Transport (..), setup)
 import Types (IrkFile (..), IrkFilePos (..), file)
 import Utils (ePutStrLn, fileText, tryEncoding)
 
@@ -32,9 +33,9 @@ data Server = Server
     initializeDone :: Bool,
     initializedDone :: Bool,
     shuttingDown :: Bool,
-    outbox :: [Message]
+    outbox :: [Message],
+    transport :: Transport
   }
-  deriving (Show)
 
 vPutStrLn :: Server -> String -> IO ()
 vPutStrLn srv text = when (verbose srv) $ ePutStrLn text
@@ -189,7 +190,7 @@ handleError srv err = case err of
 
 handleOutbox :: Server -> IO Server
 handleOutbox srv = do
-  mapM_ writeMessage $ outbox srv
+  mapM_ (writeMessage $ transport srv) (outbox srv)
   return srv {outbox = []}
 
 createServer :: Bool -> Server
@@ -201,17 +202,19 @@ createServer verb =
       initializeDone = False,
       initializedDone = False,
       shuttingDown = False,
-      outbox = []
+      outbox = [],
+      transport = Stdio
     }
 
 runServer :: ServerOptions -> IO ()
 runServer options = do
   let srv = createServer (sVerbose options)
   vPutStrLn srv "info: starting lsp server"
+  setup (transport srv)
   loop srv
   where
     loop s =
-      readMessage
+      readMessage (transport s)
         >>= either (handleError s) (handleMessage s)
         >>= handleOutbox
         >>= loop

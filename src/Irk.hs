@@ -55,7 +55,9 @@ findSymbolDefinitionInPath lang symbol symbolBS f = do
       -- for the majority of the files scanned, the symbol will not be
       -- contained in them.
       if symbolBS `isInfixOfC` source
-        then return $ map (\(IrkFilePos _ l c) -> IrkFilePos f l c) $ lFindSymbolDefinition lang symbol (decodeUtf8Lenient source)
+        then do
+          let positions = lFindSymbolDefinition lang symbol (decodeUtf8Lenient source)
+          return $ map (\(IrkFilePos _ l c) -> IrkFilePos f l c) positions
         else return []
     _ -> return []
 

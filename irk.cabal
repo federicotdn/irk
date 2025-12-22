@@ -54,6 +54,7 @@ library
                     , Utils
                     , Infix
                     , Types
+                    , Transport
 
 executable irk
     import:           warnings

@@ -38,8 +38,10 @@ BENCHMARKS = {
 }
 
 
-def run(*args: Any, **kwargs: Any):
+def run(*args: Any, verbose: bool = False, **kwargs: Any):
     kwargs.setdefault("check", True)
+    if verbose:
+        print("dev:", " ".join(args))
     return subprocess.run(args, **kwargs)
 
 
@@ -59,7 +61,7 @@ def install(profile: bool = False) -> None:
     ]
     if profile:
         args.extend(["--enable-profiling", '--ghc-options="-fprof-late"'])
-    run(*args)
+    run(*args, verbose=True)
 
 
 def vendor() -> None:

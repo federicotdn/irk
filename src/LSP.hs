@@ -31,16 +31,15 @@ import Data.Aeson (FromJSON (parseJSON), Options (..), Result (..), ToJSON (toEn
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Lazy as BSL
-import qualified Data.ByteString.Lazy.Char8 as BLC
 import Data.Char (chr, digitToInt, isHexDigit, isSpace, toLower)
 import Data.List (dropWhileEnd, find, stripPrefix)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import GHC.Generics
-import System.IO (hWaitForInput, stdin)
 import System.OsPath (OsPath, normalise, pathSeparator)
 import qualified System.OsString as OS
 import Text.Read (readMaybe)
+import Transport (Transport, readLine, readNBytes, writeBytes, writeString)
 import Types (IrkFile (..), IrkFilePos (..))
 import Utils (isWindowsAbs, os, osc)
 
@@ -352,13 +351,12 @@ cut s c = case parts of
 trim :: String -> String
 trim xs = dropWhile isSpace (dropWhileEnd isSpace xs)
 
-parseHeaders :: IO [Header]
-parseHeaders = loop []
+parseHeaders :: Transport -> IO [Header]
+parseHeaders tr = loop []
   where
     loop :: [Header] -> IO [Header]
     loop headers = do
-      _ <- hWaitForInput stdin (-1)
-      line <- getLine
+      line <- readLine tr
       let cleanLine = filter (/= '\r') line
       if null cleanLine
         then return headers
@@ -388,12 +386,9 @@ validateMessage msg = case msg of
   MNotification Notification {nJsonrpc = "2.0"} -> Right msg
   _ -> Left (ProtocolError "invalid jsonrpc field value")
 
-readNBytes :: Int -> IO BSL.ByteString
-readNBytes = BSL.hGet stdin
-
-readMessage :: IO (Either LSPError Message)
-readMessage = do
-  headers <- parseHeaders
+readMessage :: Transport -> IO (Either LSPError Message)
+readMessage tr = do
+  headers <- parseHeaders tr
   let contentType = getContentType headers
   if contentType `notElem` validContentTypes
     then
@@ -401,19 +396,19 @@ readMessage = do
     else case getContentLength headers of
       Nothing -> return $ Left (ProtocolError "no valid content length header")
       Just l -> do
-        body <- readNBytes l
+        body <- readNBytes tr l
         if BSL.length body == fromIntegral l
           then case decode body of
             Just msg -> return $ validateMessage msg
             Nothing -> return $ Left (ProtocolError "failed to decode json")
           else return $ Left (ProtocolError "invalid body length")
 
-writeMessage :: Message -> IO ()
-writeMessage msg = do
+writeMessage :: Transport -> Message -> IO ()
+writeMessage tr msg = do
   let encoded = encode msg
   let len = BSL.length encoded
-  putStr $ headerContentLength ++ ": " ++ show len ++ "\r\n\r\n"
-  BLC.putStr encoded
+  writeString tr $ headerContentLength ++ ": " ++ show len ++ "\r\n\r\n"
+  writeBytes tr encoded
 
 jsonGet :: (FromJSON a) => Value -> String -> Maybe a
 jsonGet val key = case val of
