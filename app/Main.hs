@@ -24,7 +24,6 @@ import Options.Applicative
     (<**>),
   )
 import Server (ServerOptions (..), runServer)
-import System.IO (BufferMode (..), hSetBinaryMode, hSetBuffering, stderr, stdin, stdout)
 
 data Options = Options
   { oVerbose :: Bool,
