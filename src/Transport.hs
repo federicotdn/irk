@@ -1,14 +1,15 @@
-module Transport (
-  Transport(..),
-  readNBytes,
-  readLine,
-  writeBytes,
-  writeString,
-  setup
-  ) where
+module Transport
+  ( Transport (..),
+    readNBytes,
+    readLine,
+    writeBytes,
+    writeString,
+    setup,
+  )
+where
 
-import System.IO (BufferMode (..), hSetBinaryMode, hSetBuffering, stderr, stdin, stdout)
 import qualified Data.ByteString.Lazy as BSL
+import System.IO (BufferMode (..), hSetBinaryMode, hSetBuffering, stderr, stdin, stdout)
 
 data Transport = Stdio
 

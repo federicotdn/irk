@@ -1,10 +1,16 @@
 module ServerSpec (spec) where
 
+import Control.Monad.Trans.State (runStateT)
 import Data.Aeson (object, (.=))
 import Data.Aeson.Types (Value (String))
 import LSP
 import Server
 import Test.Hspec
+
+runSrvAction :: App () -> Server -> IO Server
+runSrvAction app srv = do
+  (_, result) <- runStateT app srv
+  return result
 
 spec :: Spec
 spec = do
@@ -12,7 +18,7 @@ spec = do
     it "ignores notifications when the server is not initialized" $ do
       let srv = createServer False
       let notif = Notification {nJsonrpc = "2.0", nMethod = UnknownMethod "foo", nParams = Nothing}
-      result <- handleMessage srv (MNotification notif)
+      result <- runSrvAction (handleMessage (MNotification notif)) srv
       initializeDone result `shouldBe` False
       initializedDone result `shouldBe` False
       length (outbox result) `shouldBe` 0
@@ -20,7 +26,7 @@ spec = do
     it "returns error when the server is not initialized and request is not initialize" $ do
       let srv = createServer False
       let req = Request {rJsonrpc = "2.0", rId = IDInt 1, rMethod = TextDocumentDefinition, rParams = Nothing}
-      result <- handleMessage srv (MRequest req)
+      result <- runSrvAction (handleMessage (MRequest req)) srv
       initializeDone result `shouldBe` False
       initializedDone result `shouldBe` False
       length (outbox result) `shouldBe` 1
@@ -50,7 +56,7 @@ spec = do
                         "capabilities" .= capabilities
                       ]
               }
-      result <- handleMessage srv (MRequest req)
+      result <- runSrvAction (handleMessage (MRequest req)) srv
       initializeDone result `shouldBe` True
       positionEncoding result `shouldBe` UTF8
 
@@ -63,5 +69,5 @@ spec = do
                 rMethod = Shutdown,
                 rParams = Nothing
               }
-      result <- handleMessage srv (MRequest req)
+      result <- runSrvAction (handleMessage (MRequest req)) srv
       shuttingDown result `shouldBe` True

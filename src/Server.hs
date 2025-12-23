@@ -1,5 +1,6 @@
 module Server
   ( Server (..),
+    App,
     handleMessage,
     handleError,
     handleOutbox,
@@ -11,6 +12,8 @@ where
 
 import Control.Applicative ((<|>))
 import Control.Monad (when)
+import Control.Monad.Trans.Class (lift)
+import Control.Monad.Trans.State (StateT, get, put, runStateT)
 import Data.Aeson (object, toJSON, (.=))
 import Data.Aeson.Types (Value (Array, Null, Object, String), emptyArray)
 import Data.Maybe (catMaybes, mapMaybe, maybeToList)
@@ -37,67 +40,81 @@ data Server = Server
     transport :: Transport
   }
 
-vPutStrLn :: Server -> String -> IO ()
-vPutStrLn srv text = when (verbose srv) $ ePutStrLn text
+type App a = StateT Server IO a
 
-addOutbox :: Server -> Message -> Server
-addOutbox srv msg = srv {outbox = outbox srv ++ [msg]}
+vPutStrLn :: String -> App ()
+vPutStrLn text = do
+  srv <- get
+  when (verbose srv) $ lift (ePutStrLn text)
 
-handleExit :: Server -> IO Server
-handleExit srv =
+addOutbox :: Message -> App ()
+addOutbox msg = do
+  srv <- get
+  put $ srv {outbox = outbox srv ++ [msg]}
+
+handleExit :: App ()
+handleExit = do
+  srv <- get
   if shuttingDown srv
-    then exitSuccess
-    else exitWith (ExitFailure 1)
+    then lift exitSuccess
+    else lift $ exitWith (ExitFailure 1)
 
-returnError :: Server -> MessageID -> ErrorCode -> Text -> Maybe Value -> IO Server
-returnError srv rid code msg edata = return $ addOutbox srv $ responseErr rid code msg edata
+returnError :: MessageID -> ErrorCode -> Text -> Maybe Value -> App ()
+returnError rid code msg edata = do
+  addOutbox $ responseErr rid code msg edata
 
-returnResponse :: Server -> MessageID -> Value -> IO Server
-returnResponse srv rid val = return $ addOutbox srv $ response rid val
+returnResponse :: MessageID -> Value -> App ()
+returnResponse rid val = do
+  addOutbox $ response rid val
 
-handleShutdown :: Server -> MessageID -> IO Server
-handleShutdown srv rid = returnResponse srv {shuttingDown = True} rid Null
+handleShutdown :: MessageID -> App ()
+handleShutdown rid = do
+  srv <- get
+  put $ srv {shuttingDown = True}
+  returnResponse rid Null
 
-handleTextDocDefinition :: Server -> MessageID -> Maybe Value -> IO Server
-handleTextDocDefinition srv rid mparams = do
+handleTextDocDefinition :: MessageID -> Maybe Value -> App ()
+handleTextDocDefinition rid mparams = do
   case mparams of
     Just params@(Object _) -> do
       let textDoc = jsonGetOr params "textDocument" $ object []
       let muri = jsonGet textDoc "uri" :: Maybe URI
       muriPath <- case muri of
-        Just uri -> tryEncoding $ pathFromURI uri
+        Just uri -> lift $ tryEncoding $ pathFromURI uri
         Nothing -> pure Nothing
       let mpos = (\(Position l c) -> IrkFilePos file l c) <$> jsonGet params "position"
       let mlang = muriPath >>= languageByPath
 
       msource <- case muriPath of
-        Just uriPath -> fileText $ file {iPath = uriPath}
+        Just uriPath -> lift $ fileText $ file {iPath = uriPath}
         Nothing -> pure Nothing
 
       msymbol <- case (msource, mlang, mpos) of
         (Just source, Just lang, Just pos) -> pure $ symbolAtPosition lang source pos
         _ -> pure Nothing
 
+      srv <- get
+
       case (muriPath, mlang, msource, msymbol) of
         (Just uriPath, Just lang, Just _, Just symbol) -> do
           let workspaceURIs = workspaces srv
-          mworkspaces <- mapM (tryEncoding . pathFromURI) workspaceURIs
+          mworkspaces <- mapM (lift . tryEncoding . pathFromURI) workspaceURIs
 
           let searches = searchPaths lang (Just uriPath) (catMaybes mworkspaces)
-          positions <- findSymbolDefinition lang symbol searches
+          positions <- lift $ findSymbolDefinition lang symbol searches
 
-          mlocations <- mapM (tryEncoding . locationFromFilePos) positions
+          mlocations <- mapM (lift . tryEncoding . locationFromFilePos) positions
           let locations = catMaybes mlocations
 
-          returnResponse srv rid $ Array (V.fromList $ map toJSON locations)
-        (Nothing, _, _, _) -> returnError srv rid InvalidRequest "missing document uri, or uri encoding failed" Nothing
-        (_, Nothing, _, _) -> returnError srv rid InvalidRequest "unsupported language" Nothing
-        (_, _, Nothing, _) -> returnError srv rid InvalidRequest "unable to read document, or invalid position" Nothing
-        (_, _, _, Nothing) -> returnResponse srv rid emptyArray
-    _ -> returnError srv rid InvalidRequest "invalid params for textDocument/definition" Nothing
+          returnResponse rid $ Array (V.fromList $ map toJSON locations)
+        (Nothing, _, _, _) -> returnError rid InvalidRequest "missing document uri, or uri encoding failed" Nothing
+        (_, Nothing, _, _) -> returnError rid InvalidRequest "unsupported language" Nothing
+        (_, _, Nothing, _) -> returnError rid InvalidRequest "unable to read document, or invalid position" Nothing
+        (_, _, _, Nothing) -> returnResponse rid emptyArray
+    _ -> returnError rid InvalidRequest "invalid params for textDocument/definition" Nothing
 
-handleInitialize :: Server -> MessageID -> Maybe Value -> IO Server
-handleInitialize srv rid mparams = do
+handleInitialize :: MessageID -> Maybe Value -> App ()
+handleInitialize rid mparams = do
   case mparams of
     Just params@(Object _) -> do
       let rootURI = jsonGet params "rootUri" <|> jsonGet params "rootPath" :: Maybe URI
@@ -118,15 +135,16 @@ handleInitialize srv rid mparams = do
 
       if null workspacesList
         then
-          returnError srv rid InvalidRequest "no workspace root received" Nothing
-        else
+          returnError rid InvalidRequest "no workspace root received" Nothing
+        else do
+          srv <- get
+          put $
+            srv
+              { workspaces = workspacesList,
+                positionEncoding = head positionEncodings,
+                initializeDone = True
+              }
           returnResponse
-            ( srv
-                { workspaces = workspacesList,
-                  positionEncoding = head positionEncodings,
-                  initializeDone = True
-                }
-            )
             rid
             ( object
                 [ "capabilities"
@@ -142,56 +160,58 @@ handleInitialize srv rid mparams = do
                   "serverInfo" .= object ["name" .= String "irk"]
                 ]
             )
-    _ -> returnError srv rid InvalidRequest "invalid params for initialize" Nothing
+    _ -> returnError rid InvalidRequest "invalid params for initialize" Nothing
 
-handleInitialized :: Server -> IO Server
-handleInitialized srv = do
-  if initializeDone srv
-    then return $ srv {initializedDone = True}
-    else return srv -- ignore
+handleInitialized :: App ()
+handleInitialized = do
+  srv <- get
+  when (initializeDone srv) $ do
+    put $ srv {initializedDone = True}
+    return ()
 
-handleRequestFallback :: Server -> MessageID -> IO Server
-handleRequestFallback srv rid =
+-- Otherwise: ignore message
+
+handleRequestFallback :: MessageID -> App ()
+handleRequestFallback rid = do
+  srv <- get
   if initializedDone srv
     then do
-      vPutStrLn srv "info: ignoring request"
-      return srv
-    else returnError srv rid ServerNotInitialized "server not yet initialized" Nothing
+      vPutStrLn "info: ignoring request"
+    else returnError rid ServerNotInitialized "server not yet initialized" Nothing
 
-handleNotificationFallback :: Server -> IO Server
-handleNotificationFallback srv = do
-  vPutStrLn srv "info: ignoring notification"
-  return srv
+handleNotificationFallback :: App ()
+handleNotificationFallback = do
+  vPutStrLn "info: ignoring notification"
 
-handleResponseFallback :: Server -> IO Server
-handleResponseFallback srv = do
-  vPutStrLn srv "info: ignoring response"
-  return srv
+handleResponseFallback :: App ()
+handleResponseFallback = do
+  vPutStrLn "info: ignoring response"
 
-handleMessage :: Server -> Message -> IO Server
-handleMessage srv msg = do
+handleMessage :: Message -> App ()
+handleMessage msg = do
+  srv <- get
   case (srv, msg) of
     (Server {initializedDone = True}, MRequest Request {rId = rid, rMethod = Shutdown}) ->
-      handleShutdown srv rid
+      handleShutdown rid
     (Server {initializedDone = True}, MRequest Request {rId = rid, rMethod = TextDocumentDefinition, rParams = mparams}) ->
-      handleTextDocDefinition srv rid mparams
-    (_, MRequest Request {rId = rid, rMethod = Initialize, rParams = mparams}) -> handleInitialize srv rid mparams
-    (_, MRequest Request {rId = rid}) -> handleRequestFallback srv rid
-    (_, MNotification Notification {nMethod = Exit}) -> handleExit srv
-    (_, MNotification Notification {nMethod = Initialized}) -> handleInitialized srv
-    (_, MNotification Notification {}) -> handleNotificationFallback srv
-    (_, MResponse Response {}) -> handleResponseFallback srv
+      handleTextDocDefinition rid mparams
+    (_, MRequest Request {rId = rid, rMethod = Initialize, rParams = mparams}) -> handleInitialize rid mparams
+    (_, MRequest Request {rId = rid}) -> handleRequestFallback rid
+    (_, MNotification Notification {nMethod = Exit}) -> handleExit
+    (_, MNotification Notification {nMethod = Initialized}) -> handleInitialized
+    (_, MNotification Notification {}) -> handleNotificationFallback
+    (_, MResponse Response {}) -> handleResponseFallback
 
-handleError :: Server -> LSPError -> IO Server
-handleError srv err = case err of
+handleError :: LSPError -> App ()
+handleError err = case err of
   ProtocolError description -> do
-    ePutStrLn $ "error: " ++ description
-    return srv
+    lift $ ePutStrLn $ "error: " ++ description
 
-handleOutbox :: Server -> IO Server
-handleOutbox srv = do
-  mapM_ (writeMessage $ transport srv) (outbox srv)
-  return srv {outbox = []}
+handleOutbox :: App ()
+handleOutbox = do
+  srv <- get
+  lift $ mapM_ (writeMessage $ transport srv) (outbox srv)
+  put $ srv {outbox = []}
 
 createServer :: Bool -> Server
 createServer verb =
@@ -209,12 +229,11 @@ createServer verb =
 runServer :: ServerOptions -> IO ()
 runServer options = do
   let srv = createServer (sVerbose options)
-  vPutStrLn srv "info: starting lsp server"
   setup (transport srv)
   loop srv
   where
-    loop s =
-      readMessage (transport s)
-        >>= either (handleError s) (handleMessage s)
-        >>= handleOutbox
-        >>= loop
+    loop s = do
+      msg <- readMessage (transport s)
+      let action = either handleError handleMessage msg
+      (_, s') <- runStateT (action >> handleOutbox) s
+      loop s'
