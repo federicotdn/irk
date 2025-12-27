@@ -4,7 +4,7 @@ import Control.Monad (void)
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Languages.Common (Parser, PathFilter, hasAnyExtension, recurseDirectory, searchForMatch, symbolAtPos)
+import Languages.Common (FileFilter (..), Parser, hasAnyExt, recurseDirectory, searchForMatch, symbolAtPos, whenFile)
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, takeWhileP, (<|>))
 import Text.Megaparsec.Char (char, hspace1, space, space1, string)
@@ -14,15 +14,14 @@ import Utils (oss)
 extensions :: [OsString]
 extensions = oss [".c", ".h"]
 
-pathFilter :: PathFilter
-pathFilter _ path False = hasAnyExtension path extensions
-pathFilter _ _ _ = True
+fileFilter :: FileFilter
+fileFilter = whenFile $ hasAnyExt extensions
 
 searchPath :: IrkFile -> IO [IrkFile]
 searchPath origin = do
   case iArea origin of
     Workspace -> do
-      recurseDirectory pathFilter origin
+      recurseDirectory fileFilter origin
     WorkspaceVendored -> return []
     External -> return []
 

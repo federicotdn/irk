@@ -3,9 +3,14 @@ module Languages.Common
     Parser,
     searchForMatch,
     symbolAtPos,
-    PathFilter,
-    hasAnyExtension,
+    FileFilter (..),
+    whenFile,
+    whenDir,
+    hasAnyExt,
     hasAnyFilename,
+    atDepth,
+    none,
+    not_,
   )
 where
 
@@ -22,38 +27,52 @@ import qualified Data.Text as T
 import Data.Void (Void)
 import System.Directory.Internal (FileType (..), fileSizeFromMetadata, fileTypeFromMetadata, getFileMetadata)
 import System.Directory.OsPath (listDirectory)
-import System.OsPath (OsPath, pack, pathSeparator, takeFileName)
+import System.OsPath (takeFileName)
 import System.OsString (OsString, isSuffixOf)
 import Text.Megaparsec (Parsec, atEnd, optional, parse, takeWhileP, try)
 import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Pos (SourcePos, sourceColumn, sourceLine, unPos)
 import Types (IrkFile (..), IrkFilePos (..), file)
-import Utils (extractLine, oss)
+import Utils (extractLine, oss, qJoinPaths)
 
 type Parser = Parsec Void Text
 
-type PathFilter = Int -> OsPath -> Bool -> Bool
+newtype FileFilter = FileFilter (IrkFile -> Bool)
 
-hasAnyExtension :: OsPath -> [OsString] -> Bool
-hasAnyExtension path = any (`isSuffixOf` path)
+instance Semigroup FileFilter where
+  (FileFilter f1) <> (FileFilter f2) = FileFilter (\irkFile -> f1 irkFile && f2 irkFile)
 
-hasAnyFilename :: OsPath -> [OsPath] -> Bool
-hasAnyFilename path names = takeFileName path `elem` names
+instance Monoid FileFilter where
+  mempty = FileFilter $ const True
 
-baseFilter :: PathFilter
-baseFilter _ path True = not (hasAnyFilename path $ oss [".git", ".github", ".svn", ".hg", ".yarn", ".nx"])
-baseFilter _ _ _ = True
-{-# INLINE baseFilter #-}
+none :: FileFilter
+none = FileFilter $ const False
 
-sep :: OsString
-sep = pack [pathSeparator]
+hasAnyFilename :: [OsString] -> FileFilter
+hasAnyFilename filenames = FileFilter (\irkFile -> takeFileName (iPath irkFile) `elem` filenames)
 
--- Avoid using OsPath </> since it does too much work.
-joinPaths :: OsPath -> OsPath -> OsPath
-joinPaths p1 p2 = mconcat [p1, sep, p2]
-{-# INLINE joinPaths #-}
+hasAnyExt :: [OsString] -> FileFilter
+hasAnyExt extensions = FileFilter (\irkFile -> any (`isSuffixOf` iPath irkFile) extensions)
 
-recurseDirectory :: PathFilter -> IrkFile -> IO [IrkFile]
+not_ :: FileFilter -> FileFilter
+not_ (FileFilter f) = FileFilter (not . f)
+
+whenDir :: FileFilter -> FileFilter
+whenDir (FileFilter f) = FileFilter (\irkFile -> not (iDir irkFile) || f irkFile)
+
+whenFile :: FileFilter -> FileFilter
+whenFile (FileFilter f) = FileFilter (\irkFile -> iDir irkFile || f irkFile)
+
+atDepth :: Int -> FileFilter -> FileFilter
+atDepth depth (FileFilter f) = FileFilter (\irkFile -> iDepth irkFile /= depth || f irkFile)
+
+filterFn :: FileFilter -> IrkFile -> Bool
+filterFn (FileFilter f) = f
+
+baseFilter :: FileFilter
+baseFilter = whenDir $ not_ (hasAnyFilename $ oss [".git", ".github", ".svn", ".hg", ".yarn", ".nx"])
+
+recurseDirectory :: FileFilter -> IrkFile -> IO [IrkFile]
 recurseDirectory filterby dir = do
   queue <- newTQueueIO
   pending <- newTVarIO (1 :: Int)
@@ -86,16 +105,15 @@ recurseDirectory filterby dir = do
             let depth' = iDepth next + 1
             entries <- listDirectory $ iPath next
             entries' <- forM entries $ \e -> do
-              let path = iPath next `joinPaths` e
+              let path = iPath next `qJoinPaths` e
               metadata <- getFileMetadata path
               let isDir = fileTypeFromMetadata metadata `elem` [Directory, DirectoryLink]
               let fileSize = if isDir then Nothing else Just $ fileSizeFromMetadata metadata
               return IrkFile {iPath = path, iDir = isDir, iFileSize = fileSize, iDepth = depth', iArea = iArea next}
 
             let (p1, p2) = partition iDir entries'
-            -- TODO: Refactor filter system
-            let directories = filter (\d -> baseFilter depth' (iPath d) True && filterby depth' (iPath d) True) p1
-            let files = filter (\f -> baseFilter depth' (iPath f) False && filterby depth' (iPath f) False) p2
+            let directories = filter (filterFn (baseFilter <> filterby)) p1
+            let files = filter (filterFn (baseFilter <> filterby)) p2
 
             -- Write the directories to the queue now so that another
             -- thread can pick up more work.

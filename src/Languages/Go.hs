@@ -3,7 +3,7 @@ module Languages.Go (extensions, searchPath, symbolAtPosition, findSymbolDefinit
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Languages.Common (Parser, PathFilter, hasAnyExtension, hasAnyFilename, recurseDirectory, searchForMatch, symbolAtPos)
+import Languages.Common (FileFilter (..), Parser, atDepth, hasAnyExt, hasAnyFilename, none, not_, recurseDirectory, searchForMatch, symbolAtPos, whenDir, whenFile)
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, getSourcePos, optional, satisfy, takeWhile1P, (<|>))
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
@@ -13,21 +13,25 @@ import Utils (os)
 extensions :: [OsString]
 extensions = [os ".go"]
 
-pathFilter :: PathFilter
-pathFilter _ path False = hasAnyExtension path extensions
-pathFilter 1 path True = not (hasAnyFilename path [os "vendor"])
-pathFilter _ _ _ = True
+fileFilter :: FileFilter
+fileFilter =
+  mconcat
+    [ whenFile $ hasAnyExt extensions,
+      whenDir (atDepth 1 $ not_ $ hasAnyFilename [os "vendor"])
+    ]
 
-pathFilterVendor :: PathFilter
-pathFilterVendor 1 _ False = False -- Ignore top-level files
-pathFilterVendor 1 path True = not (pathFilter 1 path True) -- Recurse into vendor/
-pathFilterVendor depth path isDir = pathFilter depth path isDir
+fileFilterVendor :: FileFilter
+fileFilterVendor =
+  mconcat
+    [ whenFile (hasAnyExt extensions <> atDepth 1 none),
+      whenDir (atDepth 1 $ hasAnyFilename [os "vendor"])
+    ]
 
 searchPath :: IrkFile -> IO [IrkFile]
 searchPath origin = do
   case iArea origin of
-    Workspace -> recurseDirectory pathFilter origin
-    WorkspaceVendored -> recurseDirectory pathFilterVendor origin
+    Workspace -> recurseDirectory fileFilter origin
+    WorkspaceVendored -> recurseDirectory fileFilterVendor origin
     External -> return []
 
 symbolAtPosition :: Text -> IrkFilePos -> Maybe Text

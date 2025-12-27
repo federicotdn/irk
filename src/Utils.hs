@@ -10,6 +10,7 @@ module Utils
     ignoreIOError,
     isWindowsAbs,
     tryEncoding,
+    qJoinPaths,
   )
 where
 
@@ -24,7 +25,7 @@ import System.Directory.OsPath (getFileSize)
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error (tryIOError)
 import System.IO.MMap (mmapFileByteString)
-import System.OsPath (OsPath, decodeUtf, unsafeEncodeUtf, unsafeFromChar)
+import System.OsPath (OsPath, decodeUtf, pack, pathSeparator, unsafeEncodeUtf, unsafeFromChar)
 import System.OsPath.Encoding (EncodingException)
 import System.OsString (OsChar, OsString, isPrefixOf)
 import qualified System.OsString as OS
@@ -50,8 +51,13 @@ oss = map os
 osc :: Char -> OsChar
 osc = unsafeFromChar
 
-ePutStrLn :: String -> IO ()
-ePutStrLn = hPutStrLn stderr
+sep :: OsString
+sep = pack [pathSeparator]
+
+-- Avoid using OsPath </> since it does too much work.
+qJoinPaths :: OsPath -> OsPath -> OsPath
+qJoinPaths p1 p2 = mconcat [p1, sep, p2]
+{-# INLINE qJoinPaths #-}
 
 fileByteString :: IrkFile -> IO (Maybe BS.ByteString)
 fileByteString f = do
@@ -102,3 +108,6 @@ isWindowsAbs path =
   OS.length path >= 2
     && OS.toChar (OS.head path) `elem` ['a' .. 'z'] ++ ['A' .. 'Z']
     && OS.toChar (path `OS.index` 1) == ':'
+
+ePutStrLn :: String -> IO ()
+ePutStrLn = hPutStrLn stderr
