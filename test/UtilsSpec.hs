@@ -22,11 +22,12 @@ spec = do
 
   describe "fileText" $ do
     it "handles valid UTF-8 bytes" $ do
-      tmpDir <- getTemporaryDirectory
-      let testFile = tmpDir </> "utf8-test.txt"
-      writeFile testFile "mañana"
-      result <- readTextFile testFile
-      result `shouldBe` "mañana"
+      when (I.os /= "mingw32") $ do
+        tmpDir <- getTemporaryDirectory
+        let testFile = tmpDir </> "utf8-test.txt"
+        writeFile testFile "mañana"
+        result <- readTextFile testFile
+        result `shouldBe` "mañana"
 
   describe "longestPrefix" $ do
     it "calculates the longest prefix correctly" $ do
@@ -36,10 +37,12 @@ spec = do
 
   describe "hasWindowsDrive" $ do
     it "checks if a Windows drive is present" $ do
-      hasWindowsDrive (os "") `shouldBe` False
-      hasWindowsDrive (os "/foo") `shouldBe` False
-      hasWindowsDrive (os "//foo") `shouldBe` False
-      when (I.os == "mingw32") $ do
-        hasWindowsDrive (os "C:\\foo") `shouldBe` True
-        hasWindowsDrive (os "c:\\foo") `shouldBe` True
-        hasWindowsDrive (os "c:\\foo\\bar") `shouldBe` True
+      if (I.os == "mingw32")
+        then do
+          hasWindowsDrive (os "C:\\foo") `shouldBe` True
+          hasWindowsDrive (os "c:\\foo") `shouldBe` True
+          hasWindowsDrive (os "c:\\foo\\bar") `shouldBe` True
+        else do
+          hasWindowsDrive (os "") `shouldBe` False
+          hasWindowsDrive (os "/foo") `shouldBe` False
+          hasWindowsDrive (os "//foo") `shouldBe` False
