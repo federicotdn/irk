@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from subprocess import CalledProcessError
 
 BENCHMARKS = {
     "repos": {
@@ -61,7 +62,17 @@ def install(profile: bool = False) -> None:
     ]
     if profile:
         args.extend(["--enable-profiling", '--ghc-options="-fprof-late"'])
-    run(*args, verbose=True)
+
+    try:
+        run(*args, verbose=True)
+    except CalledProcessError as e:
+        if sys.platform == "win32":
+            print(
+                "hint: the .exe file may currently be running, close it and try again.",
+                file=sys.stderr,
+            )
+        print("error:", e)
+        exit(1)
 
 
 def vendor() -> None:
@@ -101,7 +112,7 @@ def benchmark(
         print("invalid case; available cases:")
         for case in BENCHMARKS["findSymbolDefinition"].keys():
             print(f"  {case}")
-        sys.exit(1)
+        exit(1)
 
     scenario = BENCHMARKS["findSymbolDefinition"][case_name]
     repo_id = scenario["repo"]

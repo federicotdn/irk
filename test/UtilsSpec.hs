@@ -21,7 +21,7 @@ spec = do
 
   describe "fileText" $ do
     it "handles valid UTF-8 bytes" $ do
-      when windows $ do
+      when (not windows) $ do
         tmpDir <- getTemporaryDirectory
         let testFile = tmpDir </> "utf8-test.txt"
         writeFile testFile "mañana"
