@@ -84,7 +84,6 @@ spec = do
       result `shouldBe` Just (os "/home/user/test.hs")
 
     it "handles absolute Windows URIs with URL-encoded colons" $ do
-      -- NOTE: This test will not actually pass when run on Windows.
       let decoded = success $ parse parseJSON "file:///c%3A/Users/test/file.hs" :: URI
       result <- tryEncoding $ pathFromURI decoded
       result `shouldBe` Just (os "c:/Users/test/file.hs")

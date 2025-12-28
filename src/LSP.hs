@@ -41,7 +41,7 @@ import qualified System.OsString as OS
 import Text.Read (readMaybe)
 import Transport (Transport, readLine, readNBytes, writeBytes, writeString)
 import Types (IrkFile (..), IrkFilePos (..))
-import Utils (isWindowsAbs, os, osc)
+import Utils (hasWindowsDrive, os, osc)
 
 data Header = Header String String deriving (Show)
 
@@ -83,7 +83,7 @@ instance ToJSON URI where
 isWindowsAbsURI :: (MonadThrow m) => URI -> m Bool
 isWindowsAbsURI (FileURI s) = do
   path <- OS.encodeUtf s
-  return $ not (OS.null path) && OS.head path == osc '/' && isWindowsAbs (OS.tail path)
+  return $ not (OS.null path) && OS.head path == osc '/' && hasWindowsDrive (OS.tail path)
 
 pathFromURI :: (MonadThrow m) => URI -> m OsPath
 pathFromURI uri@(FileURI s) = do
@@ -94,7 +94,7 @@ pathFromURI uri@(FileURI s) = do
 
 uriFromPath :: (MonadThrow m) => OsPath -> m URI
 uriFromPath path
-  | isWindowsAbs path = FileURI <$> OS.decodeUtf (os "/" <> uriPath)
+  | hasWindowsDrive path = FileURI <$> OS.decodeUtf (os "/" <> uriPath)
   | otherwise = FileURI <$> OS.decodeUtf uriPath
   where
     uriPath = OS.map (\c -> if c == pathSeparator then osc '/' else c) path

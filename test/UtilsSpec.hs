@@ -1,8 +1,10 @@
 module UtilsSpec (spec) where
 
+import qualified System.Info as I
 import System.Directory (getTemporaryDirectory)
 import System.FilePath ((</>))
 import Test.Hspec
+import Control.Monad (when)
 import Testing (readTextFile)
 import Types (IrkFilePos (..), file)
 import Utils
@@ -31,3 +33,13 @@ spec = do
       longestPrefix (os "foo/bar/baz") (oss ["foo", "foo/bar"]) `shouldBe` Just (os "foo/bar")
       longestPrefix (os "foo/bar/baz") (oss ["foo/bar", "foo/bar"]) `shouldBe` Just (os "foo/bar")
       longestPrefix (os "foo/bar/baz") (oss ["ffoo", "ffoo/bar"]) `shouldBe` Nothing
+
+  describe "hasWindowsDrive" $ do
+    it "checks if a Windows drive is present" $ do
+      hasWindowsDrive (os "") `shouldBe` False
+      hasWindowsDrive (os "/foo") `shouldBe` False
+      hasWindowsDrive (os "//foo") `shouldBe` False
+      when (I.os == "mingw32") $ do
+        hasWindowsDrive (os "C:\\foo") `shouldBe` True
+        hasWindowsDrive (os "c:\\foo") `shouldBe` True
+        hasWindowsDrive (os "c:\\foo\\bar") `shouldBe` True

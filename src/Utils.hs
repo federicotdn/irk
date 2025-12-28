@@ -9,7 +9,7 @@ module Utils
     sep,
     longestPrefix,
     ignoreIOError,
-    isWindowsAbs,
+    hasWindowsDrive,
     tryEncoding,
   )
 where
@@ -25,8 +25,9 @@ import System.Directory.OsPath (getFileSize)
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error (tryIOError)
 import System.IO.MMap (mmapFileByteString)
-import System.OsPath (OsPath, decodeUtf, pack, pathSeparator, unsafeEncodeUtf, unsafeFromChar)
+import System.OsPath (OsPath, decodeUtf, pack, pathSeparator, unsafeEncodeUtf, unsafeFromChar, takeDrive)
 import System.OsPath.Encoding (EncodingException)
+import qualified System.OsPath.Windows as Windows
 import System.OsString (OsChar, OsString, isPrefixOf)
 import qualified System.OsString as OS
 import Types (IrkFile (..), IrkFilePos (..))
@@ -98,11 +99,8 @@ tryEncoding op = (Just <$> op) `catch` handler
     handler _ = return Nothing
 
 -- | Checks whether a path appears like 'C:\some\path'.
-isWindowsAbs :: OsPath -> Bool
-isWindowsAbs path =
-  OS.length path >= 2
-    && OS.toChar (OS.head path) `elem` ['a' .. 'z'] ++ ['A' .. 'Z']
-    && OS.toChar (path `OS.index` 1) == ':'
+hasWindowsDrive :: OsPath -> Bool
+hasWindowsDrive path = not (OS.null $ OS.dropWhile (\c -> c == osc '/') (takeDrive path))
 
 ePutStrLn :: String -> IO ()
 ePutStrLn = hPutStrLn stderr
