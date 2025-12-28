@@ -25,9 +25,8 @@ import System.Directory.OsPath (getFileSize)
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error (tryIOError)
 import System.IO.MMap (mmapFileByteString)
-import System.OsPath (OsPath, decodeUtf, pack, pathSeparator, unsafeEncodeUtf, unsafeFromChar, takeDrive)
+import System.OsPath (OsPath, decodeUtf, pack, pathSeparator, takeDrive, unsafeEncodeUtf, unsafeFromChar)
 import System.OsPath.Encoding (EncodingException)
-import qualified System.OsPath.Windows as Windows
 import System.OsString (OsChar, OsString, isPrefixOf)
 import qualified System.OsString as OS
 import Types (IrkFile (..), IrkFilePos (..))

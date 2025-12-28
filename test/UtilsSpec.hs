@@ -1,10 +1,10 @@
 module UtilsSpec (spec) where
 
-import qualified System.Info as I
+import Control.Monad (when)
 import System.Directory (getTemporaryDirectory)
 import System.FilePath ((</>))
+import qualified System.Info as I
 import Test.Hspec
-import Control.Monad (when)
 import Testing (readTextFile)
 import Types (IrkFilePos (..), file)
 import Utils
