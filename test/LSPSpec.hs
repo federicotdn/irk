@@ -6,7 +6,7 @@ import Data.Aeson.Types (Result (..), ToJSON, Value (Null), emptyArray, emptyObj
 import qualified Data.ByteString.Lazy.Char8 as BL
 import LSP
 import Test.Hspec
-import Testing (success)
+import Testing (asPosix, success)
 import Utils (os, tryEncoding)
 
 assertEncoded :: (ToJSON a) => a -> String -> Expectation
@@ -81,12 +81,12 @@ spec = do
     it "handles absolute URIs for Unix" $ do
       let decoded = success $ parse parseJSON "file:///home/user/test.hs" :: URI
       result <- tryEncoding $ pathFromURI decoded
-      result `shouldBe` Just (os "/home/user/test.hs")
+      fmap asPosix result `shouldBe` Just (os "/home/user/test.hs")
 
     it "handles absolute Windows URIs with URL-encoded colons" $ do
       let decoded = success $ parse parseJSON "file:///c%3A/Users/test/file.hs" :: URI
       result <- tryEncoding $ pathFromURI decoded
-      result `shouldBe` Just (os "c:/Users/test/file.hs")
+      fmap asPosix result `shouldBe` Just (os "C:/Users/test/file.hs")
 
   describe "uriFromPath" $ do
     it "converts absolute Unix paths to URIs correctly" $ do

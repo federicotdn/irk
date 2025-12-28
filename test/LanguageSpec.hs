@@ -4,7 +4,7 @@ import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import Language
 import Test.Hspec
-import Testing (readTestFile)
+import Testing (asNative, readTestTextFile)
 import Types (IrkFile (..), IrkFilePos (..), file)
 import Utils (os)
 
@@ -18,7 +18,7 @@ spec = do
     let py = fromJust $ Map.lookup "python" languages
 
     it "processes results correctly" $ do
-      let pos path = IrkFilePos (file {iPath = os path}) 0 0
+      let pos path = IrkFilePos (file {iPath = asNative (os path)}) 0 0
       lProcessResults py [] `shouldBe` []
       lProcessResults py [pos "a/b.py"] `shouldBe` [pos "a/b.py"]
       lProcessResults py [pos "a/lib.py", pos "a/lib64.py"] `shouldBe` [pos "a/lib.py", pos "a/lib64.py"]
@@ -27,7 +27,7 @@ spec = do
       lProcessResults py [pos ".venv/lib64/a/b.py", pos ".venv/lib/a/b.py"] `shouldBe` [pos ".venv/lib/a/b.py"]
 
     it "finds the symbol definition(s)" $ do
-      pythonExample <- readTestFile "python/test.py"
+      pythonExample <- readTestTextFile "python/test.py"
 
       lFindSymbolDefinition py "missing" pythonExample `shouldBe` []
       lFindSymbolDefinition py "ident1" pythonExample `shouldBe` [IrkFilePos file 2 4]
@@ -60,7 +60,7 @@ spec = do
     let c = fromJust $ Map.lookup "c" languages
 
     it "finds the symbol definition(s)" $ do
-      cExample <- readTestFile "c/test.c"
+      cExample <- readTestTextFile "c/test.c"
 
       lFindSymbolDefinition c "missing" cExample `shouldBe` []
       lFindSymbolDefinition c "IDENT1" cExample `shouldBe` [IrkFilePos file 2 8]
@@ -78,7 +78,7 @@ spec = do
     let go = fromJust $ Map.lookup "go" languages
 
     it "finds the symbol definition(s)" $ do
-      goExample <- readTestFile "go/main.go"
+      goExample <- readTestTextFile "go/main.go"
 
       lFindSymbolDefinition go "missing" goExample `shouldBe` []
       lFindSymbolDefinition go "MyIdent1" goExample `shouldBe` [IrkFilePos file 8 5]
@@ -94,7 +94,7 @@ spec = do
     let hs = fromJust $ Map.lookup "haskell" languages
 
     it "finds the symbol definition(s)" $ do
-      hsExample <- readTestFile "haskell/test.hs"
+      hsExample <- readTestTextFile "haskell/test.hs"
 
       lFindSymbolDefinition hs "missing" hsExample `shouldBe` []
       lFindSymbolDefinition hs "ident1" hsExample `shouldBe` [IrkFilePos file 2 0]
