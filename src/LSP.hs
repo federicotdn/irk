@@ -83,7 +83,7 @@ instance ToJSON URI where
 isWindowsAbsURI :: (MonadThrow m) => URI -> m Bool
 isWindowsAbsURI (FileURI s) = do
   path <- OS.encodeUtf s
-  return $ OS.length path >= 1 && OS.head path == osc '/' && isWindowsAbs (OS.tail path)
+  return $ not (OS.null path) && OS.head path == osc '/' && isWindowsAbs (OS.tail path)
 
 pathFromURI :: (MonadThrow m) => URI -> m OsPath
 pathFromURI uri@(FileURI s) = do

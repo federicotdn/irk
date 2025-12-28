@@ -33,7 +33,7 @@ import Text.Megaparsec (Parsec, atEnd, optional, parse, takeWhileP, try)
 import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Pos (SourcePos, sourceColumn, sourceLine, unPos)
 import Types (IrkFile (..), IrkFilePos (..), file)
-import Utils (extractLine, oss, qJoinPaths)
+import Utils (extractLine, oss, sep)
 
 type Parser = Parsec Void Text
 
@@ -78,6 +78,8 @@ recurseDirectory filterby dir = do
   pending <- newTVarIO (1 :: Int)
   results <- newTQueueIO
   capa <- getNumCapabilities
+  -- Avoid using OsPath </> since it does too much work.
+  let fastJoinPaths p1 p2 = mconcat [p1, sep, p2]
 
   atomically $
     writeTQueue queue $
@@ -105,7 +107,7 @@ recurseDirectory filterby dir = do
             let depth' = iDepth next + 1
             entries <- listDirectory $ iPath next
             entries' <- forM entries $ \e -> do
-              let path = iPath next `qJoinPaths` e
+              let path = iPath next `fastJoinPaths` e
               metadata <- getFileMetadata path
               let isDir = fileTypeFromMetadata metadata `elem` [Directory, DirectoryLink]
               let fileSize = if isDir then Nothing else Just $ fileSizeFromMetadata metadata

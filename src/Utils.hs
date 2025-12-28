@@ -6,11 +6,11 @@ module Utils
     os,
     oss,
     osc,
+    sep,
     longestPrefix,
     ignoreIOError,
     isWindowsAbs,
     tryEncoding,
-    qJoinPaths,
   )
 where
 
@@ -53,11 +53,6 @@ osc = unsafeFromChar
 
 sep :: OsString
 sep = pack [pathSeparator]
-
--- Avoid using OsPath </> since it does too much work.
-qJoinPaths :: OsPath -> OsPath -> OsPath
-qJoinPaths p1 p2 = mconcat [p1, sep, p2]
-{-# INLINE qJoinPaths #-}
 
 fileByteString :: IrkFile -> IO (Maybe BS.ByteString)
 fileByteString f = do
