@@ -16,11 +16,9 @@ data Language = Language
     lExtensions :: [OsString],
     lSearchPath :: IrkFile -> IO [IrkFile],
     lSymbolAtPosition :: Text -> IrkFilePos -> Maybe Text,
-    lFindSymbolDefinition :: Text -> Text -> [IrkFilePos]
+    lFindSymbolDefinition :: Text -> Text -> [IrkFilePos],
+    lProcessResults :: [IrkFilePos] -> [IrkFilePos]
   }
-
-instance Show Language where
-  show l = "<Language: " ++ lName l ++ ">"
 
 languages :: Map String Language
 languages =
@@ -31,7 +29,8 @@ languages =
             lExtensions = LangHs.extensions,
             lSearchPath = LangHs.searchPath,
             lSymbolAtPosition = LangHs.symbolAtPosition,
-            lFindSymbolDefinition = LangHs.findSymbolDefinition
+            lFindSymbolDefinition = LangHs.findSymbolDefinition,
+            lProcessResults = id
           }
       ),
       ( "python",
@@ -40,7 +39,8 @@ languages =
             lExtensions = LangPy.extensions,
             lSearchPath = LangPy.searchPath,
             lSymbolAtPosition = LangPy.symbolAtPosition,
-            lFindSymbolDefinition = LangPy.findSymbolDefinition
+            lFindSymbolDefinition = LangPy.findSymbolDefinition,
+            lProcessResults = LangPy.processResults
           }
       ),
       ( "go",
@@ -49,7 +49,8 @@ languages =
             lExtensions = LangGo.extensions,
             lSearchPath = LangGo.searchPath,
             lSymbolAtPosition = LangGo.symbolAtPosition,
-            lFindSymbolDefinition = LangGo.findSymbolDefinition
+            lFindSymbolDefinition = LangGo.findSymbolDefinition,
+            lProcessResults = id
           }
       ),
       ( "c",
@@ -58,7 +59,8 @@ languages =
             lExtensions = LangC.extensions,
             lSearchPath = LangC.searchPath,
             lSymbolAtPosition = LangC.symbolAtPosition,
-            lFindSymbolDefinition = LangC.findSymbolDefinition
+            lFindSymbolDefinition = LangC.findSymbolDefinition,
+            lProcessResults = id
           }
       )
     ]
