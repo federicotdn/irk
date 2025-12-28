@@ -1,12 +1,13 @@
 module LSPSpec (spec) where
 
+import Control.Monad (when)
 import Data.Aeson (object, (.=))
 import Data.Aeson.Encode.Pretty (Config (..), defConfig, encodePretty')
 import Data.Aeson.Types (Result (..), ToJSON, Value (Null), emptyArray, emptyObject, parse, parseJSON)
 import qualified Data.ByteString.Lazy.Char8 as BL
 import LSP
 import Test.Hspec
-import Testing (asPosix, success)
+import Testing
 import Utils (os, tryEncoding)
 
 assertEncoded :: (ToJSON a) => a -> String -> Expectation
@@ -84,9 +85,10 @@ spec = do
       fmap asPosix result `shouldBe` Just (os "/home/user/test.hs")
 
     it "handles absolute Windows URIs with URL-encoded colons" $ do
-      let decoded = success $ parse parseJSON "file:///c%3A/Users/test/file.hs" :: URI
-      result <- tryEncoding $ pathFromURI decoded
-      fmap asPosix result `shouldBe` Just (os "C:/Users/test/file.hs")
+      when windows $ do
+        let decoded = success $ parse parseJSON "file:///c%3A/Users/test/file.hs" :: URI
+        result <- tryEncoding $ pathFromURI decoded
+        fmap asPosix result `shouldBe` Just (os "C:/Users/test/file.hs")
 
   describe "uriFromPath" $ do
     it "converts absolute Unix paths to URIs correctly" $ do
@@ -95,6 +97,7 @@ spec = do
       uri `shouldBe` Just (FileURI "/home/test/foo.py")
 
     it "converts absolute Windows paths to URIs correctly" $ do
-      let path = os "c:/Users/test/file.hs"
-      uri <- tryEncoding $ uriFromPath path
-      uri `shouldBe` Just (FileURI "/c:/Users/test/file.hs")
+      when windows $ do
+        let path = os "c:/Users/test/file.hs"
+        uri <- tryEncoding $ uriFromPath path
+        uri `shouldBe` Just (FileURI "/c:/Users/test/file.hs")

@@ -1,10 +1,11 @@
-module Testing (success, readTestTextFile, getTestTextFileSize, readTextFile, asPosix, asNative) where
+module Testing (success, readTestTextFile, getTestTextFileSize, readTextFile, asPosix, asNative, windows) where
 
 import Data.Aeson.Types (Result (..))
 import Data.Maybe (fromJust)
 import Data.Text (Text)
-import System.FilePath ((</>))
 import System.Directory.OsPath (getFileSize)
+import System.FilePath ((</>))
+import qualified System.Info as I
 import System.OsPath (OsPath, pathSeparator)
 import qualified System.OsString as OS
 import Types (IrkFile (..), file)
@@ -27,7 +28,10 @@ getTestTextFileSize :: FilePath -> IO Integer
 getTestTextFileSize path = getFileSize $ os ("test" </> "data" </> path)
 
 asPosix :: OsPath -> OsPath
-asPosix path = OS.map (\c -> if c == osc '\\' then osc '/' else c) path
+asPosix = OS.map (\c -> if c == osc '\\' then osc '/' else c)
 
 asNative :: OsPath -> OsPath
-asNative path = OS.map (\c -> if c == osc '/' then pathSeparator else c) path
+asNative = OS.map (\c -> if c == osc '/' then pathSeparator else c)
+
+windows :: Bool
+windows = I.os == "mingw32"

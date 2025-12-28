@@ -3,9 +3,8 @@ module UtilsSpec (spec) where
 import Control.Monad (when)
 import System.Directory (getTemporaryDirectory)
 import System.FilePath ((</>))
-import qualified System.Info as I
 import Test.Hspec
-import Testing (readTextFile)
+import Testing
 import Types (IrkFilePos (..), file)
 import Utils
 
@@ -22,7 +21,7 @@ spec = do
 
   describe "fileText" $ do
     it "handles valid UTF-8 bytes" $ do
-      when (I.os /= "mingw32") $ do
+      when windows $ do
         tmpDir <- getTemporaryDirectory
         let testFile = tmpDir </> "utf8-test.txt"
         writeFile testFile "mañana"
@@ -37,7 +36,7 @@ spec = do
 
   describe "hasWindowsDrive" $ do
     it "checks if a Windows drive is present" $ do
-      if (I.os == "mingw32")
+      if windows
         then do
           hasWindowsDrive (os "C:\\foo") `shouldBe` True
           hasWindowsDrive (os "c:\\foo") `shouldBe` True
