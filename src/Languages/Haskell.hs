@@ -4,7 +4,7 @@ import Control.Monad (void)
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Languages.Common (FileFilter, Parser, atDepth, hasAnyExt, hasAnyFilename, none, not_, recurseDirectory, searchForMatch, symbolAtPos, whenDir, whenFile)
+import Languages.Common (FileFilter, Parser, atDepth, hasAnyExt, hasAnyFilename, none, notWhen, recurseDirectory, searchForMatch, symbolAtPos, whenDir, whenFile)
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, getSourcePos, (<|>))
 import Text.Megaparsec.Char (char, space, space1, string)
@@ -18,7 +18,7 @@ fileFilter :: FileFilter
 fileFilter =
   mconcat
     [ whenFile $ hasAnyExt extensions,
-      whenDir (atDepth 1 $ not_ $ hasAnyFilename [os "vendor"])
+      whenDir (atDepth 1 $ notWhen $ hasAnyFilename [os "vendor"])
     ]
 
 fileFilterVendor :: FileFilter

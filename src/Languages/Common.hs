@@ -10,7 +10,7 @@ module Languages.Common
     hasAnyFilename,
     atDepth,
     none,
-    not_,
+    notWhen,
   )
 where
 
@@ -54,8 +54,8 @@ hasAnyFilename filenames = FileFilter (\irkFile -> takeFileName (iPath irkFile) 
 hasAnyExt :: [OsString] -> FileFilter
 hasAnyExt extensions = FileFilter (\irkFile -> any (`isSuffixOf` iPath irkFile) extensions)
 
-not_ :: FileFilter -> FileFilter
-not_ (FileFilter f) = FileFilter (not . f)
+notWhen :: FileFilter -> FileFilter
+notWhen (FileFilter f) = FileFilter (not . f)
 
 whenDir :: FileFilter -> FileFilter
 whenDir (FileFilter f) = FileFilter (\irkFile -> not (iDir irkFile) || f irkFile)
@@ -66,11 +66,11 @@ whenFile (FileFilter f) = FileFilter (\irkFile -> iDir irkFile || f irkFile)
 atDepth :: Int -> FileFilter -> FileFilter
 atDepth depth (FileFilter f) = FileFilter (\irkFile -> iDepth irkFile /= depth || f irkFile)
 
-filterFn :: FileFilter -> IrkFile -> Bool
-filterFn (FileFilter f) = f
+applyFilter :: FileFilter -> [IrkFile] -> [IrkFile]
+applyFilter (FileFilter f) = filter f
 
 baseFilter :: FileFilter
-baseFilter = whenDir $ not_ (hasAnyFilename $ oss [".git", ".github", ".svn", ".hg", ".yarn", ".nx"])
+baseFilter = whenDir $ notWhen (hasAnyFilename $ oss [".git", ".github", ".svn", ".hg", ".yarn", ".nx"])
 
 recurseDirectory :: FileFilter -> IrkFile -> IO [IrkFile]
 recurseDirectory filterby dir = do
@@ -112,8 +112,8 @@ recurseDirectory filterby dir = do
               return IrkFile {iPath = path, iDir = isDir, iFileSize = fileSize, iDepth = depth', iArea = iArea next}
 
             let (p1, p2) = partition iDir entries'
-            let directories = filter (filterFn (baseFilter <> filterby)) p1
-            let files = filter (filterFn (baseFilter <> filterby)) p2
+            let directories = applyFilter (baseFilter <> filterby) p1
+            let files = applyFilter (baseFilter <> filterby) p2
 
             -- Write the directories to the queue now so that another
             -- thread can pick up more work.

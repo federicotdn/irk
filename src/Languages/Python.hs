@@ -3,7 +3,7 @@ module Languages.Python (extensions, searchPath, symbolAtPosition, findSymbolDef
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Languages.Common (FileFilter, Parser, atDepth, hasAnyExt, hasAnyFilename, none, not_, recurseDirectory, searchForMatch, symbolAtPos, whenDir, whenFile)
+import Languages.Common (FileFilter, Parser, atDepth, hasAnyExt, hasAnyFilename, none, notWhen, recurseDirectory, searchForMatch, symbolAtPos, whenDir, whenFile)
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, takeWhileP, try, (<|>))
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
@@ -20,7 +20,7 @@ fileFilter :: FileFilter
 fileFilter =
   mconcat
     [ whenFile $ hasAnyExt extensions,
-      whenDir (atDepth 1 $ not_ $ hasAnyFilename venvs)
+      whenDir (atDepth 1 $ notWhen $ hasAnyFilename venvs)
     ]
 
 fileFilterVendor :: FileFilter
