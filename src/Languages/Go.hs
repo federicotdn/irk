@@ -40,8 +40,7 @@ symbolAtPosition = symbolAtPos isIdentifierChar isIdentifier
 isIdentifierChar :: Char -> Bool
 isIdentifierChar ch = isAlphaNum ch || ch == '_'
 
--- | Validate an identifier, with the assumption that all characters
--- | follow 'isIdentifierChar'.
+-- |Validate an identifier, with the assumption that all characters follow 'isIdentifierChar'.
 isIdentifier :: Text -> Bool
 isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 

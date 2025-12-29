@@ -38,16 +38,16 @@ maxFileSize = 4 * 1024 * 1024 -- 4 MB
 mmapThreshold :: Integer
 mmapThreshold = 32 * 1024 -- 32 KB
 
--- | os converts a 'String' instance to 'OsString'.
--- | Only for use with literals.
+-- |Converts a 'String' instance to 'OsString'.
+-- Only for use with literals.
 os :: String -> OsString
 os = unsafeEncodeUtf
 
--- | Like 'os', but for lists of 'String'.
+-- |Like 'os', but for lists of 'String'.
 oss :: [String] -> [OsString]
 oss = map os
 
--- | Like 'os', but for 'Char'.
+-- |Like 'os', but for 'Char'.
 osc :: Char -> OsChar
 osc = unsafeFromChar
 
@@ -97,7 +97,7 @@ tryEncoding op = (Just <$> op) `catch` handler
     handler :: EncodingException -> IO (Maybe b)
     handler _ = return Nothing
 
--- | Checks whether a path appears like 'C:\some\path'.
+-- |Checks whether a path appears like 'C:\some\path'.
 hasWindowsDrive :: OsPath -> Bool
 hasWindowsDrive path = not (OS.null $ OS.dropWhile (\c -> c == osc '/') (takeDrive path))
 

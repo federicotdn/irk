@@ -110,7 +110,7 @@ instance ToJSON Position where
 
 data Range = Range {rStart :: Position, rEnd :: Position} deriving (Show, Generic)
 
--- | Construct a zero-length Range at a file position.
+-- |Construct a zero-length Range at a file position.
 rangeFromFilePos :: IrkFilePos -> Range
 rangeFromFilePos (IrkFilePos _ l c) = Range {rStart = pos, rEnd = pos}
   where
