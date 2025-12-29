@@ -160,6 +160,7 @@ handleTextDocDefinition rid mparams = do
           let searches = searchPaths lang (Just uriPath) (catMaybes mworkspaces)
           positions <- lift $ findSymbolDefinition lang symbol searches
 
+          -- Convert positions back to the client's preferred encoding, if necessary.
           mlocations <- mapM (lift . tryEncoding . locationFromIrkFilePos (positionEncoding srv)) positions
           let locations = catMaybes mlocations
 

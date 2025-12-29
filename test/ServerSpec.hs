@@ -2,7 +2,8 @@ module ServerSpec (spec) where
 
 import Control.Monad.Trans.State (runStateT)
 import Data.Aeson (object, (.=))
-import Data.Aeson.Types (Value (String))
+import Data.Aeson.Types (Value (Array, String))
+import Data.Foldable (toList)
 import LSP
 import Server
 import Test.Hspec
@@ -33,7 +34,7 @@ spec = do
       case head (outbox result) of
         MResponse Response {pError = Just err} ->
           eCode err `shouldBe` ServerNotInitialized
-        _ -> expectationFailure "Expected error response"
+        _ -> expectationFailure "Expected an error response"
 
     it "initializes (step 1) correctly" $ do
       let srv = createServer False
@@ -71,6 +72,32 @@ spec = do
               }
       result <- runSrvAction (handleMessage (MRequest req)) srv
       shuttingDown result `shouldBe` True
+
+    it "finds a symbol's definition" $ do
+      let srv = (createServer True) {initializeDone = True, initializedDone = True, workspaces = [FileURI "."]}
+      let req =
+            Request
+              { rJsonrpc = "2.0",
+                rId = IDInt 1,
+                rMethod = TextDocumentDefinition,
+                rParams =
+                  Just $
+                    object
+                      [ "textDocument" .= object ["uri" .= FileURI "./test/data/c/test.c"],
+                        "position" .= Position {pLine = 20, pCharacter = 8}
+                      ]
+              }
+      result <- runSrvAction (handleMessage (MRequest req)) srv
+      case head (outbox result) of
+        MResponse Response {pResult = Just (Array values)} -> do
+          let first = head (toList values)
+          let range = jsonGetOr first "range" $ object []
+          let start = jsonGetOr range "start" $ object []
+          let line = jsonGetOr start "line" (-1) :: Int
+          let col = jsonGetOr start "character" (-1) :: Int
+          line `shouldBe` 7
+          col `shouldBe` 5
+        _ -> expectationFailure "Expected a response"
 
   describe "positionToUTF32" $ do
     it "returns position as-is when encoding is already UTF32" $ do
