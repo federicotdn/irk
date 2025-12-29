@@ -1,4 +1,10 @@
-module Language (Language (..), languageByPath, languageByName, languages) where
+module Language
+  ( Language (..),
+    languageByPath,
+    languageByName,
+    languages,
+  )
+where
 
 import Data.List (find)
 import Data.Map (Map)

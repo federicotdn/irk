@@ -1,9 +1,28 @@
-module Languages.Go (extensions, searchPath, symbolAtPosition, findSymbolDefinition) where
+module Languages.Go
+  ( extensions,
+    searchPath,
+    symbolAtPosition,
+    findSymbolDefinition,
+  )
+where
 
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Languages.Common (FileFilter (..), Parser, atDepth, hasAnyExt, hasAnyFilename, none, notWhen, recurseDirectory, searchForMatch, symbolAtPos, whenDir, whenFile)
+import Languages.Common
+  ( FileFilter (..),
+    Parser,
+    atDepth,
+    hasAnyExt,
+    hasAnyFilename,
+    none,
+    notWhen,
+    recurseDirectory,
+    searchForMatch,
+    symbolAtPos,
+    whenDir,
+    whenFile,
+  )
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, getSourcePos, optional, satisfy, takeWhile1P, (<|>))
 import Text.Megaparsec.Char (char, hspace, hspace1, string)

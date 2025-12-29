@@ -26,7 +26,20 @@ where
 
 import Control.Applicative ((<|>))
 import Control.Monad.Catch (MonadThrow)
-import Data.Aeson (FromJSON (parseJSON), Options (..), Result (..), ToJSON (toEncoding, toJSON), Value (..), decode, defaultOptions, encode, fromJSON, genericParseJSON, genericToEncoding, genericToJSON)
+import Data.Aeson
+  ( FromJSON (parseJSON),
+    Options (..),
+    Result (..),
+    ToJSON (toEncoding, toJSON),
+    Value (..),
+    decode,
+    defaultOptions,
+    encode,
+    fromJSON,
+    genericParseJSON,
+    genericToEncoding,
+    genericToJSON,
+  )
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Lazy as BSL

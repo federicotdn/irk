@@ -1,9 +1,29 @@
-module Languages.Python (extensions, searchPath, symbolAtPosition, findSymbolDefinition, processResults) where
+module Languages.Python
+  ( extensions,
+    searchPath,
+    symbolAtPosition,
+    findSymbolDefinition,
+    processResults,
+  )
+where
 
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Languages.Common (FileFilter, Parser, atDepth, hasAnyExt, hasAnyFilename, none, notWhen, recurseDirectory, searchForMatch, symbolAtPos, whenDir, whenFile)
+import Languages.Common
+  ( FileFilter,
+    Parser,
+    atDepth,
+    hasAnyExt,
+    hasAnyFilename,
+    none,
+    notWhen,
+    recurseDirectory,
+    searchForMatch,
+    symbolAtPos,
+    whenDir,
+    whenFile,
+  )
 import System.OsPath (OsString, joinPath, splitDirectories)
 import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, takeWhileP, try, (<|>))
 import Text.Megaparsec.Char (char, hspace, hspace1, string)

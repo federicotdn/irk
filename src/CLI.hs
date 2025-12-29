@@ -1,4 +1,8 @@
-module CLI (runFind, FindOptions (..)) where
+module CLI
+  ( runFind,
+    FindOptions (..),
+  )
+where
 
 import Control.Exception (try)
 import Control.Monad (forM_)

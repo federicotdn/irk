@@ -25,7 +25,15 @@ import System.Directory.OsPath (getFileSize)
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error (tryIOError)
 import System.IO.MMap (mmapFileByteString)
-import System.OsPath (OsPath, decodeUtf, pack, pathSeparator, takeDrive, unsafeEncodeUtf, unsafeFromChar)
+import System.OsPath
+  ( OsPath,
+    decodeUtf,
+    pack,
+    pathSeparator,
+    takeDrive,
+    unsafeEncodeUtf,
+    unsafeFromChar,
+  )
 import System.OsPath.Encoding (EncodingException)
 import System.OsString (OsChar, OsString, isPrefixOf)
 import qualified System.OsString as OS

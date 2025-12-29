@@ -1,10 +1,24 @@
-module Languages.C (extensions, searchPath, symbolAtPosition, findSymbolDefinition) where
+module Languages.C
+  ( extensions,
+    searchPath,
+    symbolAtPosition,
+    findSymbolDefinition,
+  )
+where
 
 import Control.Monad (void)
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Languages.Common (FileFilter (..), Parser, hasAnyExt, recurseDirectory, searchForMatch, symbolAtPos, whenFile)
+import Languages.Common
+  ( FileFilter (..),
+    Parser,
+    hasAnyExt,
+    recurseDirectory,
+    searchForMatch,
+    symbolAtPos,
+    whenFile,
+  )
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, takeWhileP, (<|>))
 import Text.Megaparsec.Char (char, hspace1, space, space1, string)

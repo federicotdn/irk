@@ -3,7 +3,13 @@ module Irk where
 import Control.Concurrent (getNumCapabilities)
 import Control.Concurrent.Async (replicateConcurrently_)
 import Control.Concurrent.STM (atomically, retry)
-import Control.Concurrent.STM.TQueue (flushTQueue, isEmptyTQueue, newTQueueIO, tryReadTQueue, writeTQueue)
+import Control.Concurrent.STM.TQueue
+  ( flushTQueue,
+    isEmptyTQueue,
+    newTQueueIO,
+    tryReadTQueue,
+    writeTQueue,
+  )
 import Control.Monad (unless)
 import qualified Data.ByteString as BS
 import Data.Maybe (fromMaybe, maybeToList)

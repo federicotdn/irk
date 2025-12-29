@@ -25,7 +25,12 @@ import Data.Maybe (isNothing)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
-import System.Directory.Internal (FileType (..), fileSizeFromMetadata, fileTypeFromMetadata, getFileMetadata)
+import System.Directory.Internal
+  ( FileType (..),
+    fileSizeFromMetadata,
+    fileTypeFromMetadata,
+    getFileMetadata,
+  )
 import System.Directory.OsPath (listDirectory)
 import System.OsPath (takeFileName)
 import System.OsString (OsString, isSuffixOf)
