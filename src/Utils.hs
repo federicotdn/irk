@@ -29,7 +29,7 @@ import System.OsPath (OsPath, decodeUtf, pack, pathSeparator, takeDrive, unsafeE
 import System.OsPath.Encoding (EncodingException)
 import System.OsString (OsChar, OsString, isPrefixOf)
 import qualified System.OsString as OS
-import Types (IrkFile (..), IrkFilePos (..))
+import Types (IrkFile (..))
 
 -- File size thresholds for reading strategy
 maxFileSize :: Integer
@@ -38,16 +38,16 @@ maxFileSize = 4 * 1024 * 1024 -- 4 MB
 mmapThreshold :: Integer
 mmapThreshold = 32 * 1024 -- 32 KB
 
--- |Converts a 'String' instance to 'OsString'.
--- Only for use with literals.
+-- | Converts a 'String' instance to 'OsString'.
+--  Only for use with literals.
 os :: String -> OsString
 os = unsafeEncodeUtf
 
--- |Like 'os', but for lists of 'String'.
+-- | Like 'os', but for lists of 'String'.
 oss :: [String] -> [OsString]
 oss = map os
 
--- |Like 'os', but for 'Char'.
+-- | Like 'os', but for 'Char'.
 osc :: Char -> OsChar
 osc = unsafeFromChar
 
@@ -68,15 +68,14 @@ fileByteString f = do
       | otherwise -> ignoreIOError (mmapFileByteString path Nothing)
 
 fileText :: IrkFile -> IO (Maybe Text)
-fileText path = do
-  contents <- fileByteString path
+fileText f = do
+  contents <- fileByteString f
   return (TE.decodeUtf8Lenient <$> contents)
 
--- TODO: Fix splitAt assuming UTF32
-extractLine :: Text -> IrkFilePos -> Maybe (Text, Text)
-extractLine t (IrkFilePos _ l c) = case drop l (T.lines t) of
+extractLine :: Text -> Int -> Int -> Maybe (Text, Text)
+extractLine source line col = case drop line (T.lines source) of
   [] -> Nothing
-  ls -> Just $ T.splitAt c (head ls)
+  ls -> Just $ T.splitAt col (head ls)
 
 longestPrefix :: OsString -> [OsString] -> Maybe OsPath
 longestPrefix path prefixes =
@@ -97,7 +96,7 @@ tryEncoding op = (Just <$> op) `catch` handler
     handler :: EncodingException -> IO (Maybe b)
     handler _ = return Nothing
 
--- |Checks whether a path appears like 'C:\some\path'.
+-- | Checks whether a path appears like 'C:\some\path'.
 hasWindowsDrive :: OsPath -> Bool
 hasWindowsDrive path = not (OS.null $ OS.dropWhile (\c -> c == osc '/') (takeDrive path))
 

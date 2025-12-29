@@ -173,7 +173,7 @@ searchForMatch parser source =
 {-# INLINE searchForMatch #-}
 
 symbolAtPos :: (Char -> Bool) -> (Text -> Bool) -> Text -> IrkFilePos -> Maybe Text
-symbolAtPos isIdentifierChar isIdentifier source fp = case parts of
+symbolAtPos isIdentifierChar isIdentifier source (IrkFilePos _ line col) = case parts of
   Nothing -> Nothing
   Just (before, after) -> do
     let prefix = T.takeWhileEnd isIdentifierChar before
@@ -183,5 +183,5 @@ symbolAtPos isIdentifierChar isIdentifier source fp = case parts of
     guard $ isIdentifier result
     return result
   where
-    parts = extractLine source fp
+    parts = extractLine source line col
 {-# INLINE symbolAtPos #-}

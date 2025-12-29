@@ -6,6 +6,8 @@ module Server
     handleOutbox,
     runServer,
     createServer,
+    positionToUTF32,
+    positionFromUTF32,
     ServerOptions (..),
   )
 where
@@ -16,8 +18,12 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.State (StateT, get, put, runStateT)
 import Data.Aeson (object, toJSON, (.=))
 import Data.Aeson.Types (Value (Array, Null, Object, String), emptyArray)
-import Data.Maybe (catMaybes, mapMaybe, maybeToList)
+import qualified Data.ByteString as BS
+import Data.Maybe (catMaybes, fromMaybe, mapMaybe, maybeToList)
 import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import Data.Text.Encoding.Error (lenientDecode)
 import qualified Data.Vector as V
 import Irk (findSymbolDefinition, searchPaths, symbolAtPosition)
 import LSP
@@ -25,7 +31,7 @@ import Language (languageByPath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
 import Transport (Transport (..), setup)
 import Types (IrkFile (..), IrkFilePos (..), file)
-import Utils (ePutStrLn, fileText, tryEncoding)
+import Utils (ePutStrLn, extractLine, fileText, tryEncoding)
 
 newtype ServerOptions = ServerOptions {sVerbose :: Bool}
 
@@ -73,6 +79,51 @@ handleShutdown rid = do
   put $ srv {shuttingDown = True}
   returnResponse rid Null
 
+positionToUTF32 :: Position -> PositionEncoding -> Text -> Position
+positionToUTF32 pos@(Position {pLine = line, pCharacter = col}) encoding source =
+  case params encoding of
+    Nothing -> pos
+    Just (encode, decode, multiplier) ->
+      let mline = extractLine source line 0
+       in case mline of
+            Just (_, contents) ->
+              let bytes = BS.take (col * multiplier) $ encode contents
+                  newcol = T.length (decode lenientDecode bytes)
+               in Position {pLine = line, pCharacter = newcol}
+            Nothing -> pos
+  where
+    params UTF8 = Just (TE.encodeUtf8, TE.decodeUtf8With, 1)
+    params UTF16 = Just (TE.encodeUtf16LE, TE.decodeUtf16LEWith, 2)
+    params UTF32 = Nothing
+
+positionFromUTF32 :: Position -> PositionEncoding -> Text -> Position
+positionFromUTF32 pos@(Position {pLine = line, pCharacter = col}) encoding source =
+  case params encoding of
+    Nothing -> pos
+    Just (encode, multiplier) ->
+      let mline = extractLine source line 0
+       in case mline of
+            Just (_, contents) ->
+              let bytes = encode (T.take col contents)
+                  newcol = BS.length bytes `div` multiplier
+               in Position {pLine = line, pCharacter = newcol}
+            Nothing -> pos
+  where
+    params UTF8 = Just (TE.encodeUtf8, 1)
+    params UTF16 = Just (TE.encodeUtf16LE, 2)
+    params UTF32 = Nothing
+
+locationFromIrkFilePos :: PositionEncoding -> IrkFilePos -> IO Location
+locationFromIrkFilePos encoding (IrkFilePos f line col) = do
+  uri <- uriFromPath (iPath f)
+  let utf32Pos = Position {pLine = line, pCharacter = col}
+  pos <- case encoding of
+    UTF32 -> return utf32Pos
+    _ -> do
+      msource <- fileText f
+      return $ positionFromUTF32 utf32Pos encoding $ fromMaybe "" msource
+  return $ Location {lUri = uri, lRange = Range {rStart = pos, rEnd = pos}}
+
 handleTextDocDefinition :: MessageID -> Maybe Value -> App ()
 handleTextDocDefinition rid mparams = do
   case mparams of
@@ -82,18 +133,24 @@ handleTextDocDefinition rid mparams = do
       muriPath <- case muri of
         Just uri -> lift $ tryEncoding $ pathFromURI uri
         Nothing -> pure Nothing
-      let mpos = (\(Position l c) -> IrkFilePos file l c) <$> jsonGet params "position"
+      let mpos = jsonGet params "position" :: Maybe Position
       let mlang = muriPath >>= languageByPath
 
       msource <- case muriPath of
         Just uriPath -> lift $ fileText $ file {iPath = uriPath}
         Nothing -> pure Nothing
 
-      msymbol <- case (msource, mlang, mpos) of
-        (Just source, Just lang, Just pos) -> pure $ symbolAtPosition lang source pos
-        _ -> pure Nothing
-
       srv <- get
+
+      msymbol <- case (msource, mlang, mpos) of
+        (Just source, Just lang, Just pos) -> do
+          -- The LSP position we received will be using a specific position
+          -- encoding. We first need to convert this position from its encoding
+          -- to UTF32, in order for it to work with the main irk functions.
+          let converted = positionToUTF32 pos (positionEncoding srv) source
+          let irkPos = IrkFilePos file (pLine converted) (pCharacter converted)
+          pure $ symbolAtPosition lang source irkPos
+        _ -> pure Nothing
 
       case (muriPath, mlang, msource, msymbol) of
         (Just uriPath, Just lang, Just _, Just symbol) -> do
@@ -103,7 +160,7 @@ handleTextDocDefinition rid mparams = do
           let searches = searchPaths lang (Just uriPath) (catMaybes mworkspaces)
           positions <- lift $ findSymbolDefinition lang symbol searches
 
-          mlocations <- mapM (lift . tryEncoding . locationFromFilePos) positions
+          mlocations <- mapM (lift . tryEncoding . locationFromIrkFilePos (positionEncoding srv)) positions
           let locations = catMaybes mlocations
 
           returnResponse rid $ Array (V.fromList $ map toJSON locations)
@@ -167,9 +224,6 @@ handleInitialized = do
   srv <- get
   when (initializeDone srv) $ do
     put $ srv {initializedDone = True}
-    return ()
-
--- Otherwise: ignore message
 
 handleRequestFallback :: MessageID -> App ()
 handleRequestFallback rid = do

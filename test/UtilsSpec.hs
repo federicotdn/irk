@@ -1,27 +1,27 @@
 module UtilsSpec (spec) where
 
-import Control.Monad (when)
+import Control.Monad (unless)
 import System.Directory (getTemporaryDirectory)
 import System.FilePath ((</>))
 import Test.Hspec
 import Testing
-import Types (IrkFilePos (..), file)
 import Utils
 
 spec :: Spec
 spec = do
   describe "extractLine" $ do
     it "extracts a line correctly" $ do
-      extractLine "" (IrkFilePos file 0 0) `shouldBe` Nothing
-      extractLine "hello" (IrkFilePos file 0 0) `shouldBe` Just ("", "hello")
-      extractLine "hello" (IrkFilePos file 0 3) `shouldBe` Just ("hel", "lo")
-      extractLine "hello" (IrkFilePos file 0 5) `shouldBe` Just ("hello", "")
-      extractLine "hello" (IrkFilePos file 1 0) `shouldBe` Nothing
-      extractLine "hello" (IrkFilePos file 1 10) `shouldBe` Nothing
+      extractLine "" 0 0 `shouldBe` Nothing
+      extractLine "hello" 0 0 `shouldBe` Just ("", "hello")
+      extractLine "hello" 0 3 `shouldBe` Just ("hel", "lo")
+      extractLine "hello" 0 5 `shouldBe` Just ("hello", "")
+      extractLine "hello" 1 0 `shouldBe` Nothing
+      extractLine "hello" 1 10 `shouldBe` Nothing
+      extractLine "hello\nworld" 1 0 `shouldBe` Just ("", "world")
 
   describe "fileText" $ do
     it "handles valid UTF-8 bytes" $ do
-      when (not windows) $ do
+      unless windows $ do
         tmpDir <- getTemporaryDirectory
         let testFile = tmpDir </> "utf8-test.txt"
         writeFile testFile "mañana"

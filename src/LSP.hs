@@ -1,5 +1,6 @@
 module LSP
   ( Position (..),
+    Location (..),
     Range (..),
     MessageID (..),
     Method (..),
@@ -12,8 +13,6 @@ module LSP
     ErrorCode (..),
     URI (..),
     PositionEncoding (..),
-    locationFromFilePos,
-    rangeFromFilePos,
     pathFromURI,
     uriFromPath,
     readMessage,
@@ -40,7 +39,6 @@ import System.OsPath (OsPath, normalise, pathSeparator)
 import qualified System.OsString as OS
 import Text.Read (readMaybe)
 import Transport (Transport, readLine, readNBytes, writeBytes, writeString)
-import Types (IrkFile (..), IrkFilePos (..))
 import Utils (hasWindowsDrive, os, osc)
 
 data Header = Header String String deriving (Show)
@@ -99,7 +97,7 @@ uriFromPath path
   where
     uriPath = OS.map (\c -> if c == pathSeparator then osc '/' else c) path
 
-data Position = Position {pLine :: Int, pCharacter :: Int} deriving (Show, Generic)
+data Position = Position {pLine :: Int, pCharacter :: Int} deriving (Show, Eq, Generic)
 
 instance FromJSON Position where
   parseJSON = genericParseJSON customOptions
@@ -110,12 +108,6 @@ instance ToJSON Position where
 
 data Range = Range {rStart :: Position, rEnd :: Position} deriving (Show, Generic)
 
--- |Construct a zero-length Range at a file position.
-rangeFromFilePos :: IrkFilePos -> Range
-rangeFromFilePos (IrkFilePos _ l c) = Range {rStart = pos, rEnd = pos}
-  where
-    pos = Position {pLine = l, pCharacter = c}
-
 instance FromJSON Range where
   parseJSON = genericParseJSON customOptions
 
@@ -124,11 +116,6 @@ instance ToJSON Range where
   toEncoding = genericToEncoding customOptions
 
 data Location = Location {lUri :: URI, lRange :: Range} deriving (Show, Generic)
-
-locationFromFilePos :: (MonadThrow m) => IrkFilePos -> m Location
-locationFromFilePos fp@(IrkFilePos f _ _) = do
-  uri <- uriFromPath (iPath f)
-  return $ Location {lUri = uri, lRange = rangeFromFilePos fp}
 
 instance FromJSON Location where
   parseJSON = genericParseJSON customOptions
