@@ -8,7 +8,7 @@ import LSP
 import Server
 import Test.Hspec
 
-runSrvAction :: App () -> Server -> IO Server
+runSrvAction :: Server () -> ServerState -> IO ServerState
 runSrvAction app srv = do
   (_, result) <- runStateT app srv
   return result

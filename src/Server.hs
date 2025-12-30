@@ -1,6 +1,6 @@
 module Server
-  ( Server (..),
-    App,
+  ( ServerState (..),
+    Server,
     handleMessage,
     handleError,
     handleOutbox,
@@ -35,7 +35,7 @@ import Utils (ePutStrLn, extractLine, fileText, tryEncoding)
 
 newtype ServerOptions = ServerOptions {sVerbose :: Bool}
 
-data Server = Server
+data ServerState = ServerState
   { verbose :: Bool,
     workspaces :: [URI],
     positionEncoding :: PositionEncoding,
@@ -46,34 +46,34 @@ data Server = Server
     transport :: Transport
   }
 
-type App a = StateT Server IO a
+type Server a = StateT ServerState IO a
 
-vPutStrLn :: String -> App ()
+vPutStrLn :: String -> Server ()
 vPutStrLn text = do
   srv <- get
   when (verbose srv) $ lift (ePutStrLn text)
 
-addOutbox :: Message -> App ()
+addOutbox :: Message -> Server ()
 addOutbox msg = do
   srv <- get
   put $ srv {outbox = outbox srv ++ [msg]}
 
-handleExit :: App ()
+handleExit :: Server ()
 handleExit = do
   srv <- get
   if shuttingDown srv
     then lift exitSuccess
     else lift $ exitWith (ExitFailure 1)
 
-returnError :: MessageID -> ErrorCode -> Text -> Maybe Value -> App ()
+returnError :: MessageID -> ErrorCode -> Text -> Maybe Value -> Server ()
 returnError rid code msg edata = do
   addOutbox $ responseErr rid code msg edata
 
-returnResponse :: MessageID -> Value -> App ()
+returnResponse :: MessageID -> Value -> Server ()
 returnResponse rid val = do
   addOutbox $ response rid val
 
-handleShutdown :: MessageID -> App ()
+handleShutdown :: MessageID -> Server ()
 handleShutdown rid = do
   srv <- get
   put $ srv {shuttingDown = True}
@@ -124,7 +124,7 @@ locationFromIrkFilePos encoding (IrkFilePos f line col) = do
       return $ positionFromUTF32 utf32Pos encoding $ fromMaybe "" msource
   return $ Location {lUri = uri, lRange = Range {rStart = pos, rEnd = pos}}
 
-handleTextDocDefinition :: MessageID -> Maybe Value -> App ()
+handleTextDocDefinition :: MessageID -> Maybe Value -> Server ()
 handleTextDocDefinition rid mparams = do
   case mparams of
     Just params@(Object _) -> do
@@ -171,7 +171,7 @@ handleTextDocDefinition rid mparams = do
         (_, _, _, Nothing) -> returnResponse rid emptyArray
     _ -> returnError rid InvalidRequest "invalid params for textDocument/definition" Nothing
 
-handleInitialize :: MessageID -> Maybe Value -> App ()
+handleInitialize :: MessageID -> Maybe Value -> Server ()
 handleInitialize rid mparams = do
   case mparams of
     Just params@(Object _) -> do
@@ -220,13 +220,13 @@ handleInitialize rid mparams = do
             )
     _ -> returnError rid InvalidRequest "invalid params for initialize" Nothing
 
-handleInitialized :: App ()
+handleInitialized :: Server ()
 handleInitialized = do
   srv <- get
   when (initializeDone srv) $ do
     put $ srv {initializedDone = True}
 
-handleRequestFallback :: MessageID -> App ()
+handleRequestFallback :: MessageID -> Server ()
 handleRequestFallback rid = do
   srv <- get
   if initializedDone srv
@@ -234,21 +234,21 @@ handleRequestFallback rid = do
       vPutStrLn "info: ignoring request"
     else returnError rid ServerNotInitialized "server not yet initialized" Nothing
 
-handleNotificationFallback :: App ()
+handleNotificationFallback :: Server ()
 handleNotificationFallback = do
   vPutStrLn "info: ignoring notification"
 
-handleResponseFallback :: App ()
+handleResponseFallback :: Server ()
 handleResponseFallback = do
   vPutStrLn "info: ignoring response"
 
-handleMessage :: Message -> App ()
+handleMessage :: Message -> Server ()
 handleMessage msg = do
   srv <- get
   case (srv, msg) of
-    (Server {initializedDone = True}, MRequest Request {rId = rid, rMethod = Shutdown}) ->
+    (ServerState {initializedDone = True}, MRequest Request {rId = rid, rMethod = Shutdown}) ->
       handleShutdown rid
-    (Server {initializedDone = True}, MRequest Request {rId = rid, rMethod = TextDocumentDefinition, rParams = mparams}) ->
+    (ServerState {initializedDone = True}, MRequest Request {rId = rid, rMethod = TextDocumentDefinition, rParams = mparams}) ->
       handleTextDocDefinition rid mparams
     (_, MRequest Request {rId = rid, rMethod = Initialize, rParams = mparams}) -> handleInitialize rid mparams
     (_, MRequest Request {rId = rid}) -> handleRequestFallback rid
@@ -257,20 +257,20 @@ handleMessage msg = do
     (_, MNotification Notification {}) -> handleNotificationFallback
     (_, MResponse Response {}) -> handleResponseFallback
 
-handleError :: LSPError -> App ()
+handleError :: LSPError -> Server ()
 handleError err = case err of
   ProtocolError description -> do
     lift $ ePutStrLn $ "error: " ++ description
 
-handleOutbox :: App ()
+handleOutbox :: Server ()
 handleOutbox = do
   srv <- get
   lift $ mapM_ (writeMessage $ transport srv) (outbox srv)
   put $ srv {outbox = []}
 
-createServer :: Bool -> Server
+createServer :: Bool -> ServerState
 createServer verb =
-  Server
+  ServerState
     { verbose = verb,
       workspaces = [],
       positionEncoding = UTF16,
