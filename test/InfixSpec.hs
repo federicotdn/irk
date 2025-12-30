@@ -13,6 +13,12 @@ text =
 
 spec :: Spec
 spec = do
+  describe "cpuHasAVX2" $ do
+    it "reports True when the CPU supports AVX2 instructions" $ do
+      -- It is very unlikely that the CPU we are running on will not
+      -- support AVX2.
+      cpuHasAVX2 `shouldBe` True
+
   describe "isInfixOfC" $ do
     let encoded = encodeUtf8 text
 

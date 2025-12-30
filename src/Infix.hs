@@ -1,5 +1,6 @@
 module Infix
   ( isInfixOfC,
+    cpuHasAVX2,
   )
 where
 
