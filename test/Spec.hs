@@ -2,9 +2,9 @@ module Main (main) where
 
 import qualified InfixSpec
 import qualified IrkSpec
+import qualified LSPServerSpec
 import qualified LSPSpec
 import qualified LanguageSpec
-import qualified LSPServerSpec
 import Test.Hspec
 import qualified UtilsSpec
 
