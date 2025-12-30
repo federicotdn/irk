@@ -7,6 +7,11 @@ author:             Federico Tedin
 maintainer:         federicotedin@gmail.com
 build-type:         Simple
 
+flag dev
+    description:    Build development tools
+    default:        False
+    manual:         True
+
 common warnings
     ghc-options:    -Wall
 
@@ -64,6 +69,16 @@ executable irk
     build-depends:    irk
     ghc-options:      -threaded -rtsopts -with-rtsopts=-N
     hs-source-dirs:   app
+
+executable irk-dev
+    import:           warnings
+                    , shared-deps
+    main-is:          Dev.hs
+    build-depends:    time ^>=1.14
+                    , process ^>=1.6.26
+    hs-source-dirs:   etc
+    if !flag(dev)
+        buildable:    False
 
 test-suite test-irk
     import:           warnings

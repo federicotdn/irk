@@ -4,7 +4,7 @@ build:
 	cabal build -j
 
 lint:
-	hlint src test app
+	hlint src test app etc
 
 test:
 	cabal test -j --enable-tests
@@ -13,7 +13,7 @@ repl:
 	cabal repl
 
 install:
-	uv run etc/dev.py install
+	cabal run exe:irk-dev -fdev -- install
 
 fmt:
 	@ormolu -m inplace $$(git ls-files '*.hs')
