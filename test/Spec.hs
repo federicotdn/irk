@@ -4,7 +4,7 @@ import qualified InfixSpec
 import qualified IrkSpec
 import qualified LSPSpec
 import qualified LanguageSpec
-import qualified ServerSpec
+import qualified LSPServerSpec
 import Test.Hspec
 import qualified UtilsSpec
 
@@ -14,7 +14,7 @@ main = hspec spec
 spec :: Spec
 spec = do
   describe "Irk" IrkSpec.spec
-  describe "Server" ServerSpec.spec
+  describe "LSPServer" LSPServerSpec.spec
   describe "LSP" LSPSpec.spec
   describe "Language" LanguageSpec.spec
   describe "Utils" UtilsSpec.spec

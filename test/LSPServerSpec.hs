@@ -1,11 +1,11 @@
-module ServerSpec (spec) where
+module LSPServerSpec (spec) where
 
 import Control.Monad.Trans.State (runStateT)
 import Data.Aeson (object, (.=))
 import Data.Aeson.Types (Value (Array, String))
 import Data.Foldable (toList)
 import LSP
-import Server
+import LSPServer
 import Test.Hspec
 
 runSrvAction :: Server () -> ServerState -> IO ServerState

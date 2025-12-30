@@ -1,4 +1,4 @@
-module Server
+module LSPServer
   ( ServerState (..),
     Server,
     handleMessage,

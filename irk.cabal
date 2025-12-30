@@ -48,9 +48,9 @@ library
     cc-options:       -mavx2
     hs-source-dirs:   src
     exposed-modules:  Irk
-                    , Server
                     , CLI
                     , LSP
+                    , LSPServer
                     , Language
                     , Languages.Common
                     , Languages.Haskell
@@ -90,7 +90,7 @@ test-suite test-irk
                     , aeson-pretty ^>=0.8.10
     hs-source-dirs:   test
     other-modules:    IrkSpec
-                    , ServerSpec
+                    , LSPServerSpec
                     , LSPSpec
                     , LanguageSpec
                     , UtilsSpec
