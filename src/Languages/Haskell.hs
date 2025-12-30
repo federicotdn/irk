@@ -25,7 +25,7 @@ import Languages.Common
     whenFile,
   )
 import System.OsPath (OsString)
-import Text.Megaparsec (SourcePos, choice, failure, getSourcePos, takeWhile1P, try, (<|>))
+import Text.Megaparsec (SourcePos, choice, getSourcePos, notFollowedBy, takeWhile1P, try, (<|>))
 import Text.Megaparsec.Char (char, space, space1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (os, oss)
@@ -99,10 +99,9 @@ findClassDef name = do
   _ <- space1
   pos <- getSourcePos
   _ <- string name
-  tokens <- takeWhile1P Nothing (/= '\n')
-  if "=>" `T.isInfixOf` tokens
-    then failure Nothing mempty
-    else return pos
+  _ <- takeWhile1P Nothing (`notElem` ['\n', '='])
+  notFollowedBy $ string "=>"
+  return pos
 
 findClassConstrainedDef :: Text -> Parser SourcePos
 findClassConstrainedDef name = do
