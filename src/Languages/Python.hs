@@ -25,7 +25,15 @@ import Languages.Common
     whenFile,
   )
 import System.OsPath (OsString, joinPath, splitDirectories)
-import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, takeWhileP, try, (<|>))
+import Text.Megaparsec
+  ( SourcePos,
+    choice,
+    getSourcePos,
+    optional,
+    takeWhile1P,
+    takeWhileP,
+    try,
+  )
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (os, oss)
@@ -70,10 +78,12 @@ isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 findSymbolDefinition :: Text -> Text -> [IrkFilePos]
 findSymbolDefinition symbol =
   searchForMatch $
-    findTopLevelAssignment symbol
-      -- Use 'try' here to avoid consuming initial whitespace in case we don't match.
-      <|> try (findFuncDef symbol)
-      <|> findClassDef symbol
+    choice
+      [ findTopLevelAssignment symbol,
+        -- Use 'try' here to avoid consuming initial whitespace in case we don't match.
+        try (findFuncDef symbol),
+        findClassDef symbol
+      ]
 
 findTopLevelAssignment :: Text -> Parser SourcePos
 findTopLevelAssignment name = do

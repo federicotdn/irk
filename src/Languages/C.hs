@@ -20,7 +20,7 @@ import Languages.Common
     whenFile,
   )
 import System.OsPath (OsString)
-import Text.Megaparsec (SourcePos, getSourcePos, optional, takeWhile1P, takeWhileP, (<|>))
+import Text.Megaparsec (SourcePos, choice, getSourcePos, optional, takeWhile1P, takeWhileP, (<|>))
 import Text.Megaparsec.Char (char, hspace1, space, space1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (oss)
@@ -50,7 +50,7 @@ isIdentifier :: Text -> Bool
 isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 
 findSymbolDefinition :: Text -> Text -> [IrkFilePos]
-findSymbolDefinition symbol = searchForMatch $ findMacroDef symbol <|> findFuncDef symbol
+findSymbolDefinition symbol = searchForMatch $ choice [findMacroDef symbol, findFuncDef symbol]
 
 findMacroDef :: Text -> Parser SourcePos
 findMacroDef name = do
