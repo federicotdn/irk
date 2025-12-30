@@ -25,7 +25,7 @@ import Languages.Common
     whenFile,
   )
 import System.OsPath (OsString)
-import Text.Megaparsec (SourcePos, getSourcePos, (<|>))
+import Text.Megaparsec (SourcePos, choice, failure, getSourcePos, takeWhile1P, try, (<|>))
 import Text.Megaparsec.Char (char, space, space1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (os, oss)
@@ -65,7 +65,16 @@ isIdentifier :: Text -> Bool
 isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 
 findSymbolDefinition :: Text -> Text -> [IrkFilePos]
-findSymbolDefinition symbol = searchForMatch $ findDef symbol <|> findTypeDef symbol <|> findClassDef symbol <|> findModuleDef symbol
+findSymbolDefinition symbol =
+  searchForMatch $
+    choice
+      [ findDef symbol,
+        findTypeDef symbol,
+        -- Use 'try' here to avoid consuming initial tokens in case we don't match.
+        try $ findClassDef symbol,
+        findClassConstrainedDef symbol,
+        findModuleDef symbol
+      ]
 
 findDef :: Text -> Parser SourcePos
 findDef name = do
@@ -86,12 +95,24 @@ findTypeDef name = do
 
 findClassDef :: Text -> Parser SourcePos
 findClassDef name = do
-  -- TODO: Not correct
   _ <- string "class"
   _ <- space1
   pos <- getSourcePos
   _ <- string name
+  tokens <- takeWhile1P Nothing (/= '\n')
+  if "=>" `T.isInfixOf` tokens
+    then failure Nothing mempty
+    else return pos
+
+findClassConstrainedDef :: Text -> Parser SourcePos
+findClassConstrainedDef name = do
+  _ <- string "class"
   _ <- space1
+  _ <- takeWhile1P Nothing (`notElem` ['\n', '='])
+  _ <- string "=>"
+  _ <- space
+  pos <- getSourcePos
+  _ <- string name
   return pos
 
 findModuleDef :: Text -> Parser SourcePos

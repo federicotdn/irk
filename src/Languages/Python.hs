@@ -71,7 +71,7 @@ findSymbolDefinition :: Text -> Text -> [IrkFilePos]
 findSymbolDefinition symbol =
   searchForMatch $
     findTopLevelAssignment symbol
-      -- Use 'try' here to avoid consuming initial whitespace in case we don't match
+      -- Use 'try' here to avoid consuming initial whitespace in case we don't match.
       <|> try (findFuncDef symbol)
       <|> findClassDef symbol
 
