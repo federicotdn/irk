@@ -43,6 +43,7 @@ ignoreForVendor =
       \ /*/        \n\
       \ !/vendor/  \n\
       \ !*.go      \n\
+      \ /*.go      \n\
       \"
 
 searchPath :: IrkFile -> IO [IrkFile]
