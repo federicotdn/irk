@@ -55,7 +55,7 @@ patternIgnores' pat@(Pattern parts dir) anchored splitPath =
       (Sep : rest) -> patternIgnores' (Pattern rest dir) anchored splitPath
       (DAsterisk : rest) ->
         if null rest
-          then if null splitPath then Nothing else Just True
+          then Just True
           else
             let matches = mapMaybe (patternIgnores' (Pattern rest dir) anchored) (tails splitPath)
              in if null matches then Nothing else Just (or matches)
