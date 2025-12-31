@@ -1,11 +1,16 @@
 module IgnoreSpec (spec) where
 
+import Data.Text (Text)
+import qualified Data.Text as T
 import Ignore
 import Test.Hspec
 import Utils (os)
 
 path :: String -> Part
 path p = Path $ os p
+
+parseln :: [Text] -> Ignore
+parseln patterns = parse (T.intercalate "\n" patterns)
 
 spec :: Spec
 spec = do
@@ -31,6 +36,8 @@ spec = do
     it "ignores paths correctly (single pattern)" $ do
       ignores (parse "") (os "") False `shouldBe` False
       ignores (parse "") (os "foo") False `shouldBe` False
+      -- ignores (parse "!") (os "foo") False `shouldBe` False
+      ignores (parse "!*") (os "foo") False `shouldBe` False
       ignores (parse "bar") (os "foo") False `shouldBe` False
       ignores (parse "foo") (os "foo") False `shouldBe` True
       ignores (parse "/") (os "foo") False `shouldBe` False
@@ -76,3 +83,13 @@ spec = do
       ignores (parse "/**/foo") (os "foo") False `shouldBe` True
       ignores (parse "/**/foo") (os "x/foo") False `shouldBe` True
       ignores (parse "/**/foo") (os "x/y/foo") False `shouldBe` True
+      ignores (parse "!foo/") (os "foo") True `shouldBe` False
+      ignores (parse "!foo") (os "foo") True `shouldBe` False
+
+    it "ignores paths correctly (multiple patterns)" $ do
+      ignores (parseln ["foo", "!foo"]) (os "foo") False `shouldBe` False
+      ignores (parseln ["*", "!foo"]) (os "foo") False `shouldBe` False
+      ignores (parseln ["*", "!*"]) (os "foo") False `shouldBe` False
+      ignores (parseln ["*", "!bar"]) (os "foo") False `shouldBe` True
+      ignores (parseln ["*", "!foo", "foo"]) (os "foo") False `shouldBe` True
+      ignores (parseln ["test/**", "!test/foo"]) (os "test/foo") False `shouldBe` False

@@ -68,18 +68,17 @@ patternIgnores' pat@(Pattern parts dir) anchored path =
               then if match then continued else Nothing
               else (if match && isJust continued then continued else retry)
 
-patternProp :: (([Part], Bool) -> Bool) -> Pattern -> Bool
-patternProp f (Negated pat) = patternProp f pat
-patternProp f (Pattern parts dir) = f (parts, dir)
-
 patternDir :: Pattern -> Bool
-patternDir = patternProp snd
+patternDir (Pattern _ dir) = dir
+patternDir (Negated pat) = patternDir pat
 
 patternEmpty :: Pattern -> Bool
-patternEmpty = patternProp (all (== Sep) . fst)
+patternEmpty (Pattern parts _) = all (== Sep) parts
+patternEmpty (Negated pat) = patternEmpty pat
 
 patternAnchored :: Pattern -> Bool
-patternAnchored = patternProp ((Sep `elem`) . fst)
+patternAnchored (Pattern parts _) = Sep `elem` parts
+patternAnchored (Negated pat) = patternAnchored pat
 
 patternIgnores :: Pattern -> [OsPath] -> Bool -> Maybe Bool
 patternIgnores pat path dir =
