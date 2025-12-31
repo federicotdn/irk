@@ -5,6 +5,7 @@ import Data.Maybe (isJust, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import System.OsPath (OsPath, splitDirectories, unsafeEncodeUtf)
+import qualified System.OsString as OS
 import Utils (os)
 
 data Part = Sep | DAsterisk | Path OsPath deriving (Show, Eq)
@@ -37,8 +38,12 @@ parse source =
       patterns = filter (\l -> T.head l /= '#') sourceLines
    in Ignore (map parsePattern patterns)
 
+-- TODO: Not complete, though it's good enough for most use cases.
 pathMatches :: OsPath -> OsPath -> Bool
-pathMatches path target = path == target || target == os "*" -- TODO: Implement '*'
+pathMatches path target
+  | os "*" `OS.isPrefixOf` target = OS.tail target `OS.isSuffixOf` path
+  | path == target = True
+  | otherwise = False
 
 patternIgnores' :: Pattern -> Bool -> [OsPath] -> Maybe Bool
 patternIgnores' (Negated pat) anchored splitPath =
@@ -48,8 +53,8 @@ patternIgnores' pat@(Pattern parts dir) anchored splitPath =
     then
       -- Exhausted path without returning False, meaning we might
       -- have an ignore-match. This depends on whether there is more
-      -- nonempty pattern to match.
-      Just (patternEmpty pat)
+      -- pattern to match.
+      Just (null parts)
     else case parts of
       [] -> Nothing
       (Sep : rest) -> patternIgnores' (Pattern rest dir) anchored splitPath
@@ -71,10 +76,6 @@ patternIgnores' pat@(Pattern parts dir) anchored splitPath =
 patternDir :: Pattern -> Bool
 patternDir (Pattern _ dir) = dir
 patternDir (Negated pat) = patternDir pat
-
-patternEmpty :: Pattern -> Bool
-patternEmpty (Pattern parts _) = all (== Sep) parts
-patternEmpty (Negated pat) = patternEmpty pat
 
 patternAnchored :: Pattern -> Bool
 patternAnchored (Pattern parts _) = Sep `elem` parts
