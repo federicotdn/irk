@@ -1,6 +1,6 @@
 module Ignore where
 
-import Data.List (intersperse)
+import Data.List (intersperse, tails)
 import Data.Maybe (isJust, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -52,7 +52,12 @@ patternIgnores' pat@(Pattern parts dir) path anchored =
       [] -> Nothing
       [Sep] -> Nothing
       (Sep : rest) -> patternIgnores' (Pattern rest dir) path anchored
-      (DAsterisk : _) -> undefined
+      (DAsterisk : rest) ->
+        if null rest
+          then Just True
+          else
+            let matches = mapMaybe (\p -> patternIgnores' (Pattern rest dir) p anchored) (tails path)
+             in if null matches then Nothing else Just $ or matches
       (Path target : rest) ->
         let tpath = tail path
             match = pathMatches (head path) target
@@ -61,7 +66,6 @@ patternIgnores' pat@(Pattern parts dir) path anchored =
          in if anchored
               then if match then continued else Nothing
               else (if match && isJust continued then continued else retry)
-
 
 patternProp :: (([Part], Bool) -> Bool) -> Pattern -> Bool
 patternProp f (Negated pat) = patternProp f pat

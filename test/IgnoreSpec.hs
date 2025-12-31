@@ -33,6 +33,7 @@ spec = do
       ignores (parse "") (os "foo") False `shouldBe` False
       ignores (parse "bar") (os "foo") False `shouldBe` False
       ignores (parse "foo") (os "foo") False `shouldBe` True
+      ignores (parse "/") (os "foo") False `shouldBe` False
       ignores (parse "!foo") (os "foo") False `shouldBe` False
       ignores (parse "foo") (os "foo") True `shouldBe` True
       ignores (parse "foo/") (os "foo") False `shouldBe` False
@@ -47,7 +48,29 @@ spec = do
       ignores (parse "/bar") (os "foo/bar") False `shouldBe` False
       ignores (parse "foo/bar") (os "baz/foo/bar") False `shouldBe` False
       ignores (parse "*") (os "foo") False `shouldBe` True
+      ignores (parse "/*") (os "foo") False `shouldBe` True
+      ignores (parse "/*") (os "foo/bar") False `shouldBe` False
       ignores (parse "*") (os "foo/bar/baz") False `shouldBe` True
       ignores (parse "foo/*/bar") (os "foo/x/bar") False `shouldBe` True
       ignores (parse "foo/*/bar") (os "foo/x/baz") False `shouldBe` False
       ignores (parse "foo/*/bar") (os "foo/x") False `shouldBe` False
+      ignores (parse "**") (os "foo") False `shouldBe` True
+      ignores (parse "**") (os "foo/bar/baz") False `shouldBe` True
+      ignores (parse "**/bar") (os "x/foo/bar") False `shouldBe` True
+      ignores (parse "**/foo/bar") (os "x/foo/bar") False `shouldBe` True
+      ignores (parse "**/foo/baz") (os "x/foo/bar") False `shouldBe` False
+      ignores (parse "bar/**") (os "bar/a") False `shouldBe` True
+      -- ignores (parse "bar/**") (os "bar") False `shouldBe` False
+      ignores (parse "bar/**/x") (os "bar/x") False `shouldBe` True
+      ignores (parse "bar/**/x") (os "bar/1/2/3/x") False `shouldBe` True
+      ignores (parse "bar/**/x/") (os "bar/1/2/3/x") False `shouldBe` False
+      ignores (parse "bar/**/x/") (os "bar/1/2/3/x") True `shouldBe` True
+      ignores (parse "bar/**/") (os "bar/test") True `shouldBe` True
+      ignores (parse "bar/**/") (os "bar/test") False `shouldBe` False
+      ignores (parse "**/x") (os "foo") False `shouldBe` False
+      ignores (parse "!**/foo") (os "bar/foo") False `shouldBe` False
+      ignores (parse "a/**/b/**/c") (os "a/x/b/y/c") False `shouldBe` True
+      ignores (parse "a/**/m/**/c") (os "a/x/b/y/c") False `shouldBe` False
+      ignores (parse "/**/foo") (os "foo") False `shouldBe` True
+      ignores (parse "/**/foo") (os "x/foo") False `shouldBe` True
+      ignores (parse "/**/foo") (os "x/y/foo") False `shouldBe` True
