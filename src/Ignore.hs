@@ -22,7 +22,7 @@ parsePart source = case source of
 
 parsePattern :: Text -> Pattern
 parsePattern source =
-  if T.head source == '!'
+  if not (T.null source) && T.head source == '!'
     then
       Negated $ parsePattern (T.tail source)
     else

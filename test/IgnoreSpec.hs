@@ -36,7 +36,7 @@ spec = do
     it "ignores paths correctly (single pattern)" $ do
       ignores (parse "") (os "") False `shouldBe` False
       ignores (parse "") (os "foo") False `shouldBe` False
-      -- ignores (parse "!") (os "foo") False `shouldBe` False
+      ignores (parse "!") (os "foo") False `shouldBe` False
       ignores (parse "!*") (os "foo") False `shouldBe` False
       ignores (parse "bar") (os "foo") False `shouldBe` False
       ignores (parse "foo") (os "foo") False `shouldBe` True
@@ -55,9 +55,10 @@ spec = do
       ignores (parse "/bar") (os "foo/bar") False `shouldBe` False
       ignores (parse "foo/bar") (os "baz/foo/bar") False `shouldBe` False
       ignores (parse "*") (os "foo") False `shouldBe` True
+      ignores (parse "*") (os "foo") True `shouldBe` True
+      ignores (parse "*") (os "foo/bar/baz") False `shouldBe` True
       ignores (parse "/*") (os "foo") False `shouldBe` True
       ignores (parse "/*") (os "foo/bar") False `shouldBe` False
-      ignores (parse "*") (os "foo/bar/baz") False `shouldBe` True
       ignores (parse "foo/*/bar") (os "foo/x/bar") False `shouldBe` True
       ignores (parse "foo/*/bar") (os "foo/x/baz") False `shouldBe` False
       ignores (parse "foo/*/bar") (os "foo/x") False `shouldBe` False
