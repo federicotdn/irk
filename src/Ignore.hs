@@ -1,4 +1,12 @@
-module Ignore where
+module Ignore
+  ( Ignore (..),
+    Part (..),
+    Pattern (..),
+    parse,
+    ignores,
+    ignores',
+  )
+where
 
 import Data.List (intersperse, tails)
 import Data.Maybe (isJust, mapMaybe)
@@ -13,6 +21,9 @@ data Part = Sep | DAsterisk | Path OsPath deriving (Show, Eq)
 data Pattern = Negated Pattern | Pattern [Part] Bool deriving (Show, Eq)
 
 newtype Ignore = Ignore [Pattern] deriving (Show, Eq)
+
+instance Semigroup Ignore where
+  (Ignore p1) <> (Ignore p2) = Ignore (p1 <> p2)
 
 parsePart :: Text -> Part
 parsePart source = case source of
@@ -87,7 +98,10 @@ patternIgnores pat path dir =
     then Nothing
     else patternIgnores' pat (patternAnchored pat) path
 
+-- TODO: Weird naming
+ignores' :: Ignore -> [OsPath] -> Bool -> Bool
+ignores' (Ignore patterns) splitPath dir =
+  last $ False : mapMaybe (\pat -> patternIgnores pat splitPath dir) patterns
+
 ignores :: Ignore -> OsPath -> Bool -> Bool
-ignores (Ignore patterns) path dir -- TODO: splitDirectories is probably very slow
-  =
-  last $ False : mapMaybe (\pat -> patternIgnores pat (splitDirectories path) dir) patterns
+ignores pat path = ignores' pat (splitDirectories path)

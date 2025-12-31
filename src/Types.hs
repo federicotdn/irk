@@ -19,10 +19,11 @@ data IrkFileArea
 
 -- | Represents a file or a directory.
 data IrkFile = IrkFile
-  { iPath :: OsPath,
+  { iPath :: OsPath, -- Complete path, usually absolute in LSP contexts.
+    iRelPathParts :: [OsPath], -- Path parts relative to workspace root.
     iDir :: Bool,
-    iFileSize :: Maybe Integer, -- If Nothing, then this is a directory
-    iDepth :: Int, -- Depth from workspace root (0 is the workspace)
+    iFileSize :: Maybe Integer, -- Set to Nothing when this is a directory.
+    iDepth :: Int, -- Depth from workspace root (0 is the workspace).
     iArea :: IrkFileArea
   }
   deriving (Show, Eq)
@@ -33,7 +34,23 @@ data IrkFile = IrkFile
 data IrkFilePos = IrkFilePos IrkFile Int Int deriving (Show, Eq)
 
 file :: IrkFile
-file = IrkFile {iPath = empty, iDir = False, iFileSize = Nothing, iDepth = 0, iArea = Workspace}
+file =
+  IrkFile
+    { iPath = empty,
+      iRelPathParts = [],
+      iDir = False,
+      iFileSize = Nothing,
+      iDepth = 0,
+      iArea = Workspace
+    }
 
 workspaceRoot :: IrkFileArea -> OsPath -> IrkFile
-workspaceRoot area path = IrkFile {iPath = path, iDir = True, iFileSize = Nothing, iDepth = 0, iArea = area}
+workspaceRoot area path =
+  IrkFile
+    { iPath = path,
+      iRelPathParts = [],
+      iDir = True,
+      iFileSize = Nothing,
+      iDepth = 0,
+      iArea = area
+    }

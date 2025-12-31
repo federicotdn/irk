@@ -3,14 +3,7 @@ module Languages.Common
     Parser,
     searchForMatch,
     symbolAtPos,
-    FileFilter (..),
-    whenFile,
-    whenDir,
-    hasAnyExt,
-    hasAnyFilename,
-    atDepth,
-    none,
-    notWhen,
+    baseIgnore,
   )
 where
 
@@ -25,6 +18,8 @@ import Data.Maybe (isNothing)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
+import Ignore (Ignore)
+import qualified Ignore as I
 import System.Directory.Internal
   ( FileType (..),
     fileSizeFromMetadata,
@@ -32,53 +27,35 @@ import System.Directory.Internal
     getFileMetadata,
   )
 import System.Directory.OsPath (listDirectory)
-import System.OsPath (takeFileName)
-import System.OsString (OsString, isSuffixOf)
 import Text.Megaparsec (Parsec, atEnd, optional, parse, takeWhileP, try)
 import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Pos (SourcePos, sourceColumn, sourceLine, unPos)
 import Types (IrkFile (..), IrkFilePos (..), file)
-import Utils (extractLine, oss, sep)
+import Utils (extractLine, sep)
 
 type Parser = Parsec Void Text
 
-newtype FileFilter = FileFilter (IrkFile -> Bool)
+baseIgnore :: Ignore
+baseIgnore =
+  I.parse
+    "\
+    \ *             \n\
+    \ !*/           \n\
+    \ .svn          \n\
+    \ .hg           \n\
+    \ .yarn         \n\
+    \ .nx           \n\
+    \ .ruff_cache   \n\
+    \ .mypy_cache   \n\
+    \ .pytest_cache \n\
+    \ __pycache__   \n\
+    \"
 
-instance Semigroup FileFilter where
-  (FileFilter f1) <> (FileFilter f2) = FileFilter (\irkFile -> f1 irkFile && f2 irkFile)
+irkFileIgnored :: Ignore -> IrkFile -> Bool
+irkFileIgnored ign f = I.ignores' ign (iRelPathParts f) (iDir f)
 
-instance Monoid FileFilter where
-  mempty = FileFilter $ const True
-
-none :: FileFilter
-none = FileFilter $ const False
-
-hasAnyFilename :: [OsString] -> FileFilter
-hasAnyFilename filenames = FileFilter (\irkFile -> takeFileName (iPath irkFile) `elem` filenames)
-
-hasAnyExt :: [OsString] -> FileFilter
-hasAnyExt extensions = FileFilter (\irkFile -> any (`isSuffixOf` iPath irkFile) extensions)
-
-notWhen :: FileFilter -> FileFilter
-notWhen (FileFilter f) = FileFilter (not . f)
-
-whenDir :: FileFilter -> FileFilter
-whenDir (FileFilter f) = FileFilter (\irkFile -> not (iDir irkFile) || f irkFile)
-
-whenFile :: FileFilter -> FileFilter
-whenFile (FileFilter f) = FileFilter (\irkFile -> iDir irkFile || f irkFile)
-
-atDepth :: Int -> FileFilter -> FileFilter
-atDepth depth (FileFilter f) = FileFilter (\irkFile -> iDepth irkFile /= depth || f irkFile)
-
-applyFilter :: FileFilter -> [IrkFile] -> [IrkFile]
-applyFilter (FileFilter f) = filter f
-
-baseFilter :: FileFilter
-baseFilter = whenDir $ notWhen (hasAnyFilename $ oss [".git", ".github", ".svn", ".hg", ".yarn", ".nx"])
-
-recurseDirectory :: FileFilter -> IrkFile -> IO [IrkFile]
-recurseDirectory filterby dir = do
+recurseDirectory :: Ignore -> IrkFile -> IO [IrkFile]
+recurseDirectory ign dir = do
   queue <- newTQueueIO
   pending <- newTVarIO (1 :: Int)
   results <- newTQueueIO
@@ -90,6 +67,7 @@ recurseDirectory filterby dir = do
     writeTQueue queue $
       IrkFile
         { iPath = iPath dir,
+          iRelPathParts = [],
           iDir = True,
           iFileSize = Nothing,
           iDepth = 0,
@@ -119,6 +97,7 @@ recurseDirectory filterby dir = do
               return
                 IrkFile
                   { iPath = path,
+                    iRelPathParts = iRelPathParts next ++ [e],
                     iDir = isDir,
                     iFileSize = fileSize,
                     iDepth = depth',
@@ -126,8 +105,8 @@ recurseDirectory filterby dir = do
                   }
 
             let (p1, p2) = partition iDir entries'
-            let directories = applyFilter (baseFilter <> filterby) p1
-            let files = applyFilter (baseFilter <> filterby) p2
+            let directories = filter (not . irkFileIgnored ign) p1
+            let files = filter (not . irkFileIgnored ign) p2
 
             -- Write the directories to the queue now so that another
             -- thread can pick up more work.

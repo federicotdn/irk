@@ -1,6 +1,7 @@
 module Main (main) where
 
 import CLI (FindOptions (..), runFind)
+import LSPServer (ServerOptions (..), runServer)
 import Options.Applicative
   ( Parser,
     argument,
@@ -23,7 +24,6 @@ import Options.Applicative
     value,
     (<**>),
   )
-import Server (ServerOptions (..), runServer)
 
 data Options = Options
   { oVerbose :: Bool,

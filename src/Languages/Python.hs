@@ -10,19 +10,13 @@ where
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Ignore (Ignore, parse)
 import Languages.Common
-  ( FileFilter,
-    Parser,
-    atDepth,
-    hasAnyExt,
-    hasAnyFilename,
-    none,
-    notWhen,
+  ( Parser,
+    baseIgnore,
     recurseDirectory,
     searchForMatch,
     symbolAtPos,
-    whenDir,
-    whenFile,
   )
 import System.OsPath (OsString, joinPath, splitDirectories)
 import Text.Megaparsec
@@ -36,33 +30,42 @@ import Text.Megaparsec
   )
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
-import Utils (os, oss)
+import Utils (os)
 
 extensions :: [OsString]
 extensions = [os ".py"]
 
-venvs :: [OsString]
-venvs = oss [".venv", "venv", ".env", "env"]
+-- TODO: Why does !**/*.go not work here?
+ignore :: Ignore
+ignore =
+  baseIgnore
+    <> parse
+      "\
+      \ /.venv/   \n\
+      \ /.env/    \n\
+      \ /venv/    \n\
+      \ /env/     \n\
+      \ !*.py     \n\
+      \"
 
-fileFilter :: FileFilter
-fileFilter =
-  mconcat
-    [ whenFile $ hasAnyExt extensions,
-      whenDir (atDepth 1 $ notWhen $ hasAnyFilename venvs)
-    ]
-
-fileFilterVendor :: FileFilter
-fileFilterVendor =
-  mconcat
-    [ whenFile (hasAnyExt extensions <> atDepth 1 none),
-      whenDir (atDepth 1 $ hasAnyFilename venvs)
-    ]
+ignoreForVendor :: Ignore
+ignoreForVendor =
+  baseIgnore
+    <> parse
+      "\
+      \ /*/        \n\
+      \ !/.venv/   \n\
+      \ !/.env/    \n\
+      \ !/venv/    \n\
+      \ !/env/     \n\
+      \ !*.py      \n\
+      \"
 
 searchPath :: IrkFile -> IO [IrkFile]
 searchPath origin = do
   case iArea origin of
-    Workspace -> recurseDirectory fileFilter origin
-    WorkspaceVendored -> recurseDirectory fileFilterVendor origin
+    Workspace -> recurseDirectory ignore origin
+    WorkspaceVendored -> recurseDirectory ignoreForVendor origin
     External -> return []
 
 symbolAtPosition :: Text -> IrkFilePos -> Maybe Text

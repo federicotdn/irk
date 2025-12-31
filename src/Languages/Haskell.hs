@@ -10,48 +10,50 @@ import Control.Monad (void)
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Ignore (Ignore, parse)
 import Languages.Common
-  ( FileFilter,
-    Parser,
-    atDepth,
-    hasAnyExt,
-    hasAnyFilename,
-    none,
-    notWhen,
+  ( Parser,
+    baseIgnore,
     recurseDirectory,
     searchForMatch,
     symbolAtPos,
-    whenDir,
-    whenFile,
   )
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, choice, getSourcePos, notFollowedBy, takeWhile1P, try, (<|>))
 import Text.Megaparsec.Char (char, space, space1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
-import Utils (os, oss)
+import Utils (oss)
 
 extensions :: [OsString]
 extensions = oss [".hs", ".hsc"]
 
-fileFilter :: FileFilter
-fileFilter =
-  mconcat
-    [ whenFile $ hasAnyExt extensions,
-      whenDir (atDepth 1 $ notWhen $ hasAnyFilename [os "vendor"])
-    ]
+-- TODO: Why does !**/*.go not work here?
+ignore :: Ignore
+ignore =
+  baseIgnore
+    <> parse
+      "\
+      \ /vendor/  \n\
+      \ !*.hs     \n\
+      \ !*.hsc    \n\
+      \"
 
-fileFilterVendor :: FileFilter
-fileFilterVendor =
-  mconcat
-    [ whenFile (hasAnyExt extensions <> atDepth 1 none),
-      whenDir (atDepth 1 $ hasAnyFilename [os "vendor"])
-    ]
+ignoreForVendor :: Ignore
+ignoreForVendor =
+  baseIgnore
+    <> parse
+      "\
+      \ /*/        \n\
+      \ !/vendor/  \n\
+      \ !*.hs      \n\
+      \ !*.hsc     \n\
+      \"
 
 searchPath :: IrkFile -> IO [IrkFile]
 searchPath origin = do
   case iArea origin of
-    Workspace -> recurseDirectory fileFilter origin
-    WorkspaceVendored -> recurseDirectory fileFilterVendor origin
+    Workspace -> recurseDirectory ignore origin
+    WorkspaceVendored -> recurseDirectory ignoreForVendor origin
     External -> return []
 
 symbolAtPosition :: Text -> IrkFilePos -> Maybe Text

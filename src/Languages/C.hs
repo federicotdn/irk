@@ -10,14 +10,13 @@ import Control.Monad (void)
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Ignore (Ignore, parse)
 import Languages.Common
-  ( FileFilter (..),
-    Parser,
-    hasAnyExt,
+  ( Parser,
+    baseIgnore,
     recurseDirectory,
     searchForMatch,
     symbolAtPos,
-    whenFile,
   )
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, choice, getSourcePos, optional, takeWhile1P, takeWhileP, (<|>))
@@ -28,14 +27,20 @@ import Utils (oss)
 extensions :: [OsString]
 extensions = oss [".c", ".h"]
 
-fileFilter :: FileFilter
-fileFilter = whenFile $ hasAnyExt extensions
+ignore :: Ignore
+ignore =
+  baseIgnore
+    <> parse
+      "\
+      \ !*.c     \n\
+      \ !*.h     \n\
+      \"
 
 searchPath :: IrkFile -> IO [IrkFile]
 searchPath origin = do
   case iArea origin of
     Workspace -> do
-      recurseDirectory fileFilter origin
+      recurseDirectory ignore origin
     WorkspaceVendored -> return []
     External -> return []
 
