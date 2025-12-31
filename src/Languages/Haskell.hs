@@ -27,7 +27,6 @@ import Utils (oss)
 extensions :: [OsString]
 extensions = oss [".hs", ".hsc"]
 
--- TODO: Why does !**/*.go not work here?
 ignore :: Ignore
 ignore =
   baseIgnore

@@ -39,6 +39,7 @@ spec = do
       ignores (parse "!") (os "foo") False `shouldBe` False
       ignores (parse "!*") (os "foo") False `shouldBe` False
       ignores (parse "bar") (os "foo") False `shouldBe` False
+      ignores (parse "!bar") (os "foo") False `shouldBe` False
       ignores (parse "foo") (os "foo") False `shouldBe` True
       ignores (parse "/") (os "foo") False `shouldBe` False
       ignores (parse "!foo") (os "foo") False `shouldBe` False
@@ -99,6 +100,8 @@ spec = do
       ignores (parse "**/") (os "test/file") False `shouldBe` False
       ignores (parse "/*/") (os "test") True `shouldBe` True
       ignores (parse "/*/") (os "test/foo") True `shouldBe` False
+      ignores (parse "**/*.py") (os "zzz") False `shouldBe` False
+      ignores (parse "!**/*.py") (os "zzz") False `shouldBe` False
 
     it "ignores paths correctly (multiple patterns)" $ do
       ignores (parseln ["foo", "!foo"]) (os "foo") False `shouldBe` False

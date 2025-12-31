@@ -35,7 +35,6 @@ import Utils (os)
 extensions :: [OsString]
 extensions = [os ".py"]
 
--- TODO: Why does !**/*.go not work here?
 ignore :: Ignore
 ignore =
   baseIgnore

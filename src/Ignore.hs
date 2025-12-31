@@ -65,7 +65,7 @@ patternIgnores' pat@(Pattern parts dir) anchored splitPath =
       -- Exhausted path without returning False, meaning we might
       -- have an ignore-match. This depends on whether there is more
       -- pattern to match.
-      Just (null parts)
+      if null parts then Just True else Nothing
     else case parts of
       [] -> Nothing
       (Sep : rest) -> patternIgnores' (Pattern rest dir) anchored splitPath
