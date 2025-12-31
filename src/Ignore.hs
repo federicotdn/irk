@@ -41,10 +41,10 @@ pathMatches :: OsPath -> OsPath -> Bool
 pathMatches path target = path == target || target == os "*" -- TODO: Implement '*'
 
 patternIgnores' :: Pattern -> Bool -> [OsPath] -> Maybe Bool
-patternIgnores' (Negated pat) anchored path =
-  not <$> patternIgnores' pat anchored path
-patternIgnores' pat@(Pattern parts dir) anchored path =
-  if null path
+patternIgnores' (Negated pat) anchored splitPath =
+  not <$> patternIgnores' pat anchored splitPath
+patternIgnores' pat@(Pattern parts dir) anchored splitPath =
+  if null splitPath
     then
       -- Exhausted path without returning False, meaning we might
       -- have an ignore-match. This depends on whether there is more
@@ -52,18 +52,18 @@ patternIgnores' pat@(Pattern parts dir) anchored path =
       Just (patternEmpty pat)
     else case parts of
       [] -> Nothing
-      (Sep : rest) -> patternIgnores' (Pattern rest dir) anchored path
+      (Sep : rest) -> patternIgnores' (Pattern rest dir) anchored splitPath
       (DAsterisk : rest) ->
         if null rest
-          then if null path then Nothing else Just True
+          then if null splitPath then Nothing else Just True
           else
-            let matches = mapMaybe (patternIgnores' (Pattern rest dir) anchored) (tails path)
-             in if null matches then Nothing else Just $ or matches
+            let matches = mapMaybe (patternIgnores' (Pattern rest dir) anchored) (tails splitPath)
+             in if null matches then Nothing else Just (or matches)
       (Path target : rest) ->
-        let tpath = tail path
-            match = pathMatches (head path) target
-            continued = patternIgnores' (Pattern rest dir) anchored tpath
-            retry = if null tpath then Nothing else patternIgnores' pat anchored tpath
+        let tailPath = tail splitPath
+            match = pathMatches (head splitPath) target
+            continued = patternIgnores' (Pattern rest dir) anchored tailPath
+            retry = if null tailPath then Nothing else patternIgnores' pat anchored tailPath
          in if anchored
               then if match then continued else Nothing
               else (if match && isJust continued then continued else retry)
