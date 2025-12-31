@@ -50,4 +50,4 @@ spec = do
       ignores (parse "*") (os "foo/bar/baz") False `shouldBe` True
       ignores (parse "foo/*/bar") (os "foo/x/bar") False `shouldBe` True
       ignores (parse "foo/*/bar") (os "foo/x/baz") False `shouldBe` False
-      -- ignores (parse "foo/*/bar") (os "foo/x") False `shouldBe` False
+      ignores (parse "foo/*/bar") (os "foo/x") False `shouldBe` False

@@ -47,7 +47,7 @@ patternIgnores' pat@(Pattern parts dir) path anchored =
   if null path
     then
       -- Exhausted path without returning False, meaning we have an ignore-match.
-      Just True
+      Just (patternEmpty pat)
     else case parts of
       [] -> Nothing
       [Sep] -> Nothing
@@ -62,13 +62,19 @@ patternIgnores' pat@(Pattern parts dir) path anchored =
               then if match then continued else Nothing
               else (if match && isJust continued then continued else retry)
 
+
+patternProp :: (([Part], Bool) -> Bool) -> Pattern -> Bool
+patternProp f (Negated pat) = patternProp f pat
+patternProp f (Pattern parts dir) = f (parts, dir)
+
 patternDir :: Pattern -> Bool
-patternDir (Pattern _ dir) = dir
-patternDir (Negated pat) = patternDir pat
+patternDir = patternProp snd
+
+patternEmpty :: Pattern -> Bool
+patternEmpty = patternProp (all (\p -> p `elem` [Sep, DAsterisk]) . fst)
 
 patternAnchored :: Pattern -> Bool
-patternAnchored (Pattern parts _) = Sep `elem` parts
-patternAnchored (Negated pat) = patternAnchored pat
+patternAnchored = patternProp ((Sep `elem`) . fst)
 
 patternIgnores :: Pattern -> [OsPath] -> Bool -> Maybe Bool
 patternIgnores pat path dir =
