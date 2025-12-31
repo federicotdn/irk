@@ -3,7 +3,15 @@ module LSPSpec (spec) where
 import Control.Monad (when)
 import Data.Aeson (object, (.=))
 import Data.Aeson.Encode.Pretty (Config (..), defConfig, encodePretty')
-import Data.Aeson.Types (Result (..), ToJSON, Value (Null), emptyArray, emptyObject, parse, parseJSON)
+import Data.Aeson.Types
+  ( Result (..),
+    ToJSON,
+    Value (Null),
+    emptyArray,
+    emptyObject,
+    parse,
+    parseJSON,
+  )
 import qualified Data.ByteString.Lazy.Char8 as BL
 import LSP
 import Test.Hspec

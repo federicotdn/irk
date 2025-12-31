@@ -1,5 +1,6 @@
 module Main (main) where
 
+import qualified IgnoreSpec
 import qualified InfixSpec
 import qualified IrkSpec
 import qualified LSPServerSpec
@@ -19,3 +20,4 @@ spec = do
   describe "Language" LanguageSpec.spec
   describe "Utils" UtilsSpec.spec
   describe "Infix" InfixSpec.spec
+  describe "Ignore" IgnoreSpec.spec

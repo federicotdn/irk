@@ -116,7 +116,14 @@ recurseDirectory filterby dir = do
               metadata <- getFileMetadata path
               let isDir = fileTypeFromMetadata metadata `elem` [Directory, DirectoryLink]
               let fileSize = if isDir then Nothing else Just $ fileSizeFromMetadata metadata
-              return IrkFile {iPath = path, iDir = isDir, iFileSize = fileSize, iDepth = depth', iArea = iArea next}
+              return
+                IrkFile
+                  { iPath = path,
+                    iDir = isDir,
+                    iFileSize = fileSize,
+                    iDepth = depth',
+                    iArea = iArea next
+                  }
 
             let (p1, p2) = partition iDir entries'
             let directories = applyFilter (baseFilter <> filterby) p1

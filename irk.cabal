@@ -61,6 +61,7 @@ library
                     , Infix
                     , Types
                     , Transport
+                    , Ignore
 
 executable irk
     import:           warnings
@@ -95,4 +96,5 @@ test-suite test-irk
                     , LanguageSpec
                     , UtilsSpec
                     , InfixSpec
+                    , IgnoreSpec
                     , Testing

@@ -1,4 +1,13 @@
-module Testing (success, readTestTextFile, getTestTextFileSize, readTextFile, asPosix, asNative, windows) where
+module Testing
+  ( success,
+    readTestTextFile,
+    getTestTextFileSize,
+    readTextFile,
+    asPosix,
+    asNative,
+    windows,
+  )
+where
 
 import Data.Aeson.Types (Result (..))
 import Data.Maybe (fromJust)
