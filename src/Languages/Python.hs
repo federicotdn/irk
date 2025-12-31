@@ -58,6 +58,7 @@ ignoreForVendor =
       \ !/venv/    \n\
       \ !/env/     \n\
       \ !*.py      \n\
+      \ /*.py      \n\
       \"
 
 searchPath :: IrkFile -> IO [IrkFile]

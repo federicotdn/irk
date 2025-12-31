@@ -7,7 +7,7 @@ import Language (languages)
 import Test.Hspec
 import Testing (asPosix, getTestTextFileSize)
 import Types (IrkFile (..), IrkFileArea (..))
-import Utils (os)
+import Utils (os, oss)
 
 -- Helper to normalize paths in results for cross-platform comparison
 normalizePaths :: [[IrkFile]] -> [[IrkFile]]
@@ -26,8 +26,22 @@ spec = do
       allPaths <- sequence searches
       normalizePaths allPaths
         `shouldBe` [ [],
-                     [IrkFile (os "test/data/python/test.py") [] False testPySize 1 Workspace],
-                     [IrkFile (os "test/data/python/.venv/vendored.py") [] False vendoredPySize 2 WorkspaceVendored],
+                     [ IrkFile
+                         (os "test/data/python/test.py")
+                         [os "test.py"]
+                         False
+                         testPySize
+                         1
+                         Workspace
+                     ],
+                     [ IrkFile
+                         (os "test/data/python/.venv/vendored.py")
+                         (oss [".venv", "vendored.py"])
+                         False
+                         vendoredPySize
+                         2
+                         WorkspaceVendored
+                     ],
                      []
                    ]
 
@@ -38,8 +52,29 @@ spec = do
       let searches = searchPaths py (Just (os "test/data/python/foo.py")) [os "test/data/python"]
       allPaths <- sequence searches
       normalizePaths allPaths
-        `shouldBe` [ [IrkFile (os "test/data/python/foo.py") [] False Nothing 0 Workspace],
-                     [IrkFile (os "test/data/python/test.py") [] False testPySize 1 Workspace],
-                     [IrkFile (os "test/data/python/.venv/vendored.py") [] False vendoredPySize 2 WorkspaceVendored],
+        `shouldBe` [ [ IrkFile
+                         (os "test/data/python/foo.py")
+                         []
+                         False
+                         Nothing
+                         0
+                         Workspace
+                     ],
+                     [ IrkFile
+                         (os "test/data/python/test.py")
+                         [os "test.py"]
+                         False
+                         testPySize
+                         1
+                         Workspace
+                     ],
+                     [ IrkFile
+                         (os "test/data/python/.venv/vendored.py")
+                         (oss [".venv", "vendored.py"])
+                         False
+                         vendoredPySize
+                         2
+                         WorkspaceVendored
+                     ],
                      []
                    ]
