@@ -34,12 +34,12 @@ spec = do
       parse "!path" `shouldBe` Ignore [pat [path "path"] False True False]
       parse "path/" `shouldBe` Ignore [pat [path "path"] True False False]
       parse "path///" `shouldBe` Ignore [pat [path "path"] True False False]
-      parse "/path/" `shouldBe` Ignore [pat [Sep, path "path"] True False True]
-      parse "/path/foo/" `shouldBe` Ignore [pat [Sep, path "path", Sep, path "foo"] True False True]
-      parse "/path///foo/" `shouldBe` Ignore [pat [Sep, path "path", Sep, path "foo"] True False True]
+      parse "/path/" `shouldBe` Ignore [pat [path "path"] True False True]
+      parse "/path/foo/" `shouldBe` Ignore [pat [path "path", Sep, path "foo"] True False True]
+      parse "/path///foo/" `shouldBe` Ignore [pat [path "path", Sep, path "foo"] True False True]
       parse "**/path/" `shouldBe` Ignore [pat [DAsterisk, Sep, path "path"] True False True]
-      parse "/path/**" `shouldBe` Ignore [pat [Sep, path "path", Sep, DAsterisk] False False True]
-      parse "/path/**/" `shouldBe` Ignore [pat [Sep, path "path", Sep, DAsterisk] True False True]
+      parse "/path/**" `shouldBe` Ignore [pat [path "path", Sep, DAsterisk] False False True]
+      parse "/path/**/" `shouldBe` Ignore [pat [path "path", Sep, DAsterisk] True False True]
 
   describe "ignores" $ do
     it "ignores paths correctly (single pattern)" $ do

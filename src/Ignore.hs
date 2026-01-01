@@ -48,7 +48,7 @@ parsePattern source =
       parts = filter (not . T.null) $ T.splitOn "/" source'
       parts' = prefix ++ intersperse Sep (map parsePart parts)
       dir = "/" `T.isSuffixOf` source'
-      anchored = not (null prefix) || Sep `elem` parts'
+      anchored = Sep `elem` parts'
    in Pattern
         { pParts = parts',
           pDir = dir,
@@ -58,10 +58,8 @@ parsePattern source =
 
 simplify :: Pattern -> Pattern
 simplify pat@Pattern {pParts = parts} = case parts of
-  [Sep] -> pat {pParts = []}
   [DAsterisk] -> pat {pParts = [Path $ os "*"]}
-  (Sep : DAsterisk : rest) -> pat {pParts = DAsterisk : rest}
-  (Sep : p@(Path _) : Sep : rest) -> pat {pParts = [p, Sep] ++ rest}
+  (Sep : rest) -> pat {pParts = rest}
   _ -> pat
 
 parse :: Text -> Ignore
