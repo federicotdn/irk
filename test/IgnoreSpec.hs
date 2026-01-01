@@ -54,6 +54,7 @@ spec = do
       ignores (parse "/") (os "foo") True `shouldBe` False
       ignores (parse "/") (os "") False `shouldBe` False
       ignores (parse "!foo") (os "foo") False `shouldBe` False
+      ignores (parse "!!foo") (os "foo") False `shouldBe` False
       ignores (parse "foo") (os "foo") True `shouldBe` True
       ignores (parse "foo/") (os "foo") False `shouldBe` False
       ignores (parse "foo/") (os "foo") True `shouldBe` True
@@ -71,6 +72,9 @@ spec = do
       ignores (parse "*") (os "foo/bar/baz") False `shouldBe` True
       ignores (parse "/*") (os "foo") False `shouldBe` True
       ignores (parse "/*") (os "foo/bar") False `shouldBe` False
+      ignores (parse "*/*") (os "foo/bar") False `shouldBe` True
+      ignores (parse "*/*") (os "foo/bar/baz") False `shouldBe` False
+      ignores (parse "*/*") (os "foo") False `shouldBe` False
       ignores (parse "foo/bar") (os "foo/x/bar") False `shouldBe` False
       ignores (parse "foo/*/bar") (os "foo/x/bar") False `shouldBe` True
       ignores (parse "foo/*/bar") (os "foo/x/baz") False `shouldBe` False
@@ -90,6 +94,8 @@ spec = do
       ignores (parse "bar/**/") (os "bar/test") True `shouldBe` True
       ignores (parse "bar/**/") (os "bar/test") False `shouldBe` False
       ignores (parse "**/x") (os "foo") False `shouldBe` False
+      ignores (parse "**/**") (os "foo") False `shouldBe` True
+      ignores (parse "**/**") (os "foo/bar") False `shouldBe` True
       ignores (parse "!**/foo") (os "bar/foo") False `shouldBe` False
       ignores (parse "a/**/b/**/c") (os "a/x/b/y/c") False `shouldBe` True
       ignores (parse "a/**/m/**/c") (os "a/x/b/y/c") False `shouldBe` False
@@ -135,6 +141,7 @@ spec = do
 
     it "ignores paths correctly (multiple patterns)" $ do
       ignores (parseln ["foo", "!foo"]) (os "foo") False `shouldBe` False
+      ignores (parseln ["!foo", "!!foo"]) (os "foo") False `shouldBe` False
       ignores (parseln ["*", "!foo"]) (os "foo") False `shouldBe` False
       ignores (parseln ["*", "!*"]) (os "foo") False `shouldBe` False
       ignores (parseln ["*", "!bar"]) (os "foo") False `shouldBe` True
