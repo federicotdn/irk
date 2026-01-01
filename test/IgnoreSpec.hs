@@ -109,6 +109,17 @@ spec = do
       ignores (parse "/*/") (os "test/foo") True `shouldBe` False
       ignores (parse "**/*.py") (os "zzz") False `shouldBe` False
       ignores (parse "!**/*.py") (os "zzz") False `shouldBe` False
+      -- From https://git-scm.com/docs/gitignore:
+      ignores (parse "doc/frotz/") (os "doc/frotz") True `shouldBe` True
+      ignores (parse "doc/frotz/") (os "a/doc/frotz") True `shouldBe` False
+      ignores (parse "frotz/") (os "frotz") True `shouldBe` True
+      ignores (parse "frotz/") (os "a/frotz") True `shouldBe` True
+      ignores (parse "**/foo") (os "a/foo") False `shouldBe` True
+      ignores (parse "**/foo/bar") (os "a/b/foo/bar") False `shouldBe` True
+      ignores (parse "abc/**") (os "abc/foo/bar") False `shouldBe` True
+      ignores (parse "a/**/b") (os "a/b") False `shouldBe` True
+      ignores (parse "a/**/b") (os "a/x/b") False `shouldBe` True
+      ignores (parse "a/**/b") (os "a/x/y/b") False `shouldBe` True
 
     it "ignores paths correctly (multiple patterns)" $ do
       ignores (parseln ["foo", "!foo"]) (os "foo") False `shouldBe` False
