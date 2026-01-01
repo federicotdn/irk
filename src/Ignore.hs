@@ -16,7 +16,7 @@ import System.OsPath (OsPath, splitDirectories, unsafeEncodeUtf)
 import qualified System.OsString as OS
 import Utils (os)
 
-data Part = Sep | DAsterisk | Path OsPath deriving (Show, Eq)
+data Part = Sep | DAsterisk | Segment OsPath deriving (Show, Eq)
 
 data Pattern = Pattern
   { pParts :: [Part],
@@ -36,7 +36,7 @@ parsePart source = case source of
   "/" -> Sep
   "**" -> DAsterisk
   -- TODO: Make it safe
-  _ -> Path $ unsafeEncodeUtf (T.unpack source)
+  _ -> Segment $ unsafeEncodeUtf (T.unpack source)
 
 parsePattern :: Text -> Pattern
 parsePattern source =
@@ -58,7 +58,7 @@ parsePattern source =
 
 simplify :: Pattern -> Pattern
 simplify pat@Pattern {pParts = parts} = case parts of
-  [DAsterisk] -> pat {pParts = [Path $ os "*"]}
+  [DAsterisk] -> pat {pParts = [Segment $ os "*"]}
   (Sep : rest) -> pat {pParts = rest}
   _ -> pat
 
@@ -69,8 +69,8 @@ parse source =
    in Ignore (map (simplify . parsePattern) patterns)
 
 -- TODO: Not complete, though it's good enough for most use cases.
-pathMatches :: OsPath -> OsPath -> Bool
-pathMatches path target
+segmentMatches :: OsPath -> OsPath -> Bool
+segmentMatches path target
   | os "*" `OS.isPrefixOf` target = OS.tail target `OS.isSuffixOf` path
   | os "*" `OS.isSuffixOf` target = OS.init target `OS.isPrefixOf` path
   | path == target = True
@@ -93,11 +93,11 @@ patternIgnores' pat@Pattern {pParts = parts} splitPath =
         if null rest
           then Just True
           else
-            let matches = mapMaybe (patternIgnores' (pat {pParts = rest})) (tails splitPath)
+            let matches = mapMaybe (patternIgnores' (pat {pParts = rest})) (init $ tails splitPath)
              in if null matches then Nothing else Just (or matches)
-      (Path target : rest) ->
+      (Segment seg : rest) ->
         let tailPath = tail splitPath
-            match = pathMatches (head splitPath) target
+            match = segmentMatches (head splitPath) seg
             continued = patternIgnores' (pat {pParts = rest}) tailPath
             retry = if null tailPath then Nothing else patternIgnores' pat tailPath
          in if pAnchored pat
