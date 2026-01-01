@@ -4,6 +4,7 @@ module Ignore
     Segment (..),
     parse,
     ignores,
+    ignores',
   )
 where
 
@@ -118,7 +119,8 @@ ignoresInner :: Ignore -> [OsPath] -> Bool -> Bool
 ignoresInner (Ignore patterns) splitPath dir =
   last $ False : mapMaybe (\pat -> patternIgnores pat splitPath dir) patterns
 
-ignores :: Ignore -> Either OsPath [OsPath] -> Bool -> Bool
-ignores ign path =
-  let path' = either splitDirectories id path
-   in ignoresInner ign path'
+ignores :: Ignore -> OsPath -> Bool -> Bool
+ignores ign path = ignoresInner ign (splitDirectories path)
+
+ignores' :: Ignore -> [OsPath] -> Bool -> Bool
+ignores' = ignoresInner

@@ -46,7 +46,7 @@ baseIgnore =
     )
 
 irkFileIgnored :: Ignore -> IrkFile -> Bool
-irkFileIgnored ign f = I.ignores ign (Right $ iRelPathParts f) (iDir f)
+irkFileIgnored ign f = I.ignores' ign (iRelPathParts f) (iDir f)
 
 recurseDirectory :: Ignore -> IrkFile -> IO [IrkFile]
 recurseDirectory ign dir = do
