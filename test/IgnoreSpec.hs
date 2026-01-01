@@ -6,16 +6,16 @@ import Ignore
 import Test.Hspec
 import Utils (os)
 
-path :: String -> Part
-path p = Segment $ Const (os p)
+path :: String -> Segment
+path p = Const (os p)
 
 parseln :: [Text] -> Ignore
 parseln patterns = parse (T.intercalate "\n" patterns)
 
-pat :: [Part] -> Bool -> Bool -> Bool -> Pattern
-pat parts dir negated anchored =
+pat :: [Segment] -> Bool -> Bool -> Bool -> Pattern
+pat segs dir negated anchored =
   Pattern
-    { pParts = parts,
+    { pSegments = segs,
       pDir = dir,
       pNegated = negated,
       pAnchored = anchored

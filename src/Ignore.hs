@@ -1,6 +1,5 @@
 module Ignore
   ( Ignore (..),
-    Part (..),
     Pattern (..),
     Segment (..),
     parse,
@@ -16,12 +15,10 @@ import qualified Data.Text as T
 import System.OsPath (OsPath, splitDirectories, unsafeEncodeUtf)
 import qualified System.OsString as OS
 
-data Segment = All | Const OsPath | Prefix OsPath | Suffix OsPath | Glob OsPath deriving (Show, Eq)
-
-data Part = DAsterisk | Segment Segment deriving (Show, Eq)
+data Segment = DAsterisk | Asterisk | Const OsPath | Prefix OsPath | Suffix OsPath | Glob OsPath deriving (Show, Eq)
 
 data Pattern = Pattern
-  { pParts :: [Part],
+  { pSegments :: [Segment],
     pDir :: Bool,
     pNegated :: Bool,
     pAnchored :: Bool
@@ -33,21 +30,16 @@ newtype Ignore = Ignore [Pattern] deriving (Show, Eq)
 instance Semigroup Ignore where
   (Ignore p1) <> (Ignore p2) = Ignore (p1 <> p2)
 
-parseSegmentInner :: Text -> Segment
-parseSegmentInner source
-  | source == "*" = All
+parseSegment :: Text -> Segment
+parseSegment source
+  | source == "**" = DAsterisk
+  | source == "*" = Asterisk
   | acount == 1 && "*" `T.isPrefixOf` source = Suffix (OS.tail encoded)
   | acount == 1 && "*" `T.isSuffixOf` source = Prefix (OS.init encoded)
   | otherwise = Const encoded
   where
     acount = T.count "*" source
     encoded = unsafeEncodeUtf (T.unpack source)
-
-parseSegment :: Text -> Part
-parseSegment source = case source of
-  "**" -> DAsterisk
-  -- TODO: Make it safe
-  _ -> Segment (parseSegmentInner source)
 
 parsePattern :: Text -> Pattern
 parsePattern source =
@@ -60,7 +52,7 @@ parsePattern source =
       dir = "/" `T.isSuffixOf` source'
       anchored = "/" `T.isPrefixOf` source' || length segments' > 1
    in Pattern
-        { pParts = segments',
+        { pSegments = segments',
           pDir = dir,
           pNegated = negated,
           pAnchored = anchored
@@ -75,34 +67,35 @@ parse source =
 -- TODO: Not complete, though it's good enough for most use cases.
 segmentMatches :: Segment -> OsPath -> Bool
 segmentMatches target path = case target of
-  All -> True
+  DAsterisk -> error "Unhandled double asterisk pattern"
+  Asterisk -> True
   Const val -> path == val
   Prefix val -> val `OS.isPrefixOf` path
   Suffix val -> val `OS.isSuffixOf` path
-  _ -> undefined
+  Glob _ -> undefined
 
 patternIgnores' :: Pattern -> [OsPath] -> Maybe Bool
 patternIgnores' pat@Pattern {pNegated = True} splitPath =
   not <$> patternIgnores' pat {pNegated = False} splitPath
-patternIgnores' pat@Pattern {pParts = parts} splitPath =
+patternIgnores' pat@Pattern {pSegments = segs} splitPath =
   if null splitPath
     then
       -- Exhausted path without returning False, meaning we might
       -- have an ignore-match. This depends on whether there is more
       -- pattern to match.
-      if null parts then Just True else Nothing
-    else case parts of
+      if null segs then Just True else Nothing
+    else case segs of
       [] -> Nothing
       (DAsterisk : rest) ->
         if null rest
           then Just True
           else
-            let matches = mapMaybe (patternIgnores' (pat {pParts = rest})) (init $ tails splitPath)
+            let matches = mapMaybe (patternIgnores' (pat {pSegments = rest})) (init $ tails splitPath)
              in if null matches then Nothing else Just (or matches)
-      (Segment seg : rest) ->
+      (seg : rest) ->
         let tailPath = tail splitPath
             match = segmentMatches seg (head splitPath)
-            continued = patternIgnores' (pat {pParts = rest}) tailPath
+            continued = patternIgnores' (pat {pSegments = rest}) tailPath
             retry = if null tailPath then Nothing else patternIgnores' pat tailPath
          in if pAnchored pat
               then if match then continued else Nothing
