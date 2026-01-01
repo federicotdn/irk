@@ -8,7 +8,7 @@ module Utils
     osc,
     sep,
     longestPrefix,
-    ignoreIOError,
+    tryIO,
     hasWindowsDrive,
     tryEncoding,
   )
@@ -72,8 +72,8 @@ fileByteString f = do
     0 -> return Nothing
     _
       | size > maxFileSize -> return Nothing
-      | size < mmapThreshold -> ignoreIOError (BS.readFile path)
-      | otherwise -> ignoreIOError (mmapFileByteString path Nothing)
+      | size < mmapThreshold -> tryIO (BS.readFile path)
+      | otherwise -> tryIO (mmapFileByteString path Nothing)
 
 fileText :: IrkFile -> IO (Maybe Text)
 fileText f = do
@@ -91,8 +91,8 @@ longestPrefix path prefixes =
     [] -> Nothing
     matches -> Just $ maximumBy (compare `on` OS.length) matches
 
-ignoreIOError :: IO a -> IO (Maybe a)
-ignoreIOError op = do
+tryIO :: IO a -> IO (Maybe a)
+tryIO op = do
   result <- tryIOError op
   case result of
     Right val -> return $ Just val

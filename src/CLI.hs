@@ -14,7 +14,7 @@ import System.OsPath (OsPath, normalise)
 import System.OsPath.Encoding (EncodingException)
 import System.OsString (decodeUtf, encodeUtf)
 import Types (IrkFile (..), IrkFilePos (..))
-import Utils (ePutStrLn, ignoreIOError)
+import Utils (ePutStrLn, tryIO)
 
 data FindOptions = FindOptions
   { fWorkspace :: FilePath,
@@ -34,7 +34,7 @@ runFind options = do
       let searches = searchPaths lang Nothing [workspace]
       positions <- findSymbolDefinition lang symbol searches
       forM_ positions $ \(IrkFilePos f l c) -> do
-        result <- ignoreIOError (decodeUtf . normalise $ iPath f)
+        result <- tryIO (decodeUtf . normalise $ iPath f)
         case result of
           Just decoded -> ePutStrLn $ decoded ++ ":" ++ show (l + 1) ++ ":" ++ show (c + 1)
           Nothing -> pure ()
