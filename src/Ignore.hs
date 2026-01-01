@@ -4,7 +4,7 @@ module Ignore
     Segment (..),
     parse,
     ignores,
-    ignores',
+    ignoresIO,
   )
 where
 
@@ -12,10 +12,20 @@ import Data.List (tails)
 import Data.Maybe (isJust, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
-import System.OsPath (OsPath, splitDirectories, unsafeEncodeUtf)
+import GHC.IO.Encoding (utf16le, utf8)
+import System.Directory.OsPath (doesDirectoryExist)
+import System.OsPath (OsPath, encodeWith, joinPath, splitDirectories)
 import qualified System.OsString as OS
 
-data Segment = DAsterisk | Asterisk | Const OsPath | Prefix OsPath | Suffix OsPath | Glob OsPath deriving (Show, Eq)
+-- TODO: Add a Glob constructor to match more complex segments
+-- such as "abc?d", "foo*bar", "a[a-zA-Z]b", etc.
+data Segment
+  = DAsterisk
+  | Asterisk
+  | Const OsPath
+  | Prefix OsPath
+  | Suffix OsPath
+  deriving (Show, Eq)
 
 data Pattern = Pattern
   { pSegments :: [Segment],
@@ -30,16 +40,16 @@ newtype Ignore = Ignore [Pattern] deriving (Show, Eq)
 instance Semigroup Ignore where
   (Ignore p1) <> (Ignore p2) = Ignore (p1 <> p2)
 
-parseSegment :: Text -> Segment
+parseSegment :: Text -> Maybe Segment
 parseSegment source
-  | source == "**" = DAsterisk
-  | source == "*" = Asterisk
-  | acount == 1 && "*" `T.isPrefixOf` source = Suffix (OS.tail encoded)
-  | acount == 1 && "*" `T.isSuffixOf` source = Prefix (OS.init encoded)
-  | otherwise = Const encoded
+  | source == "**" = Just DAsterisk
+  | source == "*" = Just Asterisk
+  | acount == 1 && "*" `T.isPrefixOf` source = Suffix . OS.tail <$> encoded
+  | acount == 1 && "*" `T.isSuffixOf` source = Prefix . OS.init <$> encoded
+  | otherwise = Const <$> encoded
   where
     acount = T.count "*" source
-    encoded = unsafeEncodeUtf (T.unpack source)
+    encoded = either (const Nothing) Just $ encodeWith utf8 utf16le (T.unpack source)
 
 parsePattern :: Text -> Pattern
 parsePattern source =
@@ -48,7 +58,7 @@ parsePattern source =
           then (T.tail source, True)
           else (source, False)
       segments = filter (not . T.null) $ T.splitOn "/" source'
-      segments' = map parseSegment segments
+      segments' = mapMaybe parseSegment segments
       dir = "/" `T.isSuffixOf` source'
       anchored = "/" `T.isPrefixOf` source' || length segments' > 1
    in Pattern
@@ -64,7 +74,6 @@ parse source =
       patterns = filter (\l -> T.head l /= '#') sourceLines
    in Ignore (map parsePattern patterns)
 
--- TODO: Not complete, though it's good enough for most use cases.
 segmentMatches :: Segment -> OsPath -> Bool
 segmentMatches target path = case target of
   DAsterisk -> error "Unhandled double asterisk pattern"
@@ -72,7 +81,6 @@ segmentMatches target path = case target of
   Const val -> path == val
   Prefix val -> val `OS.isPrefixOf` path
   Suffix val -> val `OS.isSuffixOf` path
-  Glob _ -> undefined
 
 patternIgnores' :: Pattern -> [OsPath] -> Maybe Bool
 patternIgnores' pat@Pattern {pNegated = True} splitPath =
@@ -102,15 +110,22 @@ patternIgnores' pat@Pattern {pSegments = segs} splitPath =
               else (if match && isJust continued then continued else retry)
 
 patternIgnores :: Pattern -> [OsPath] -> Bool -> Maybe Bool
-patternIgnores pat path dir =
-  if (pDir pat && not dir) || null path
+patternIgnores pat splitPath dir =
+  if (pDir pat && not dir) || null splitPath
     then Nothing
-    else patternIgnores' pat path
+    else patternIgnores' pat splitPath
 
--- TODO: Weird naming
-ignores' :: Ignore -> [OsPath] -> Bool -> Bool
-ignores' (Ignore patterns) splitPath dir =
+ignoresInner :: Ignore -> [OsPath] -> Bool -> Bool
+ignoresInner (Ignore patterns) splitPath dir =
   last $ False : mapMaybe (\pat -> patternIgnores pat splitPath dir) patterns
 
-ignores :: Ignore -> OsPath -> Bool -> Bool
-ignores pat path = ignores' pat (splitDirectories path)
+ignores :: Ignore -> Either OsPath [OsPath] -> Bool -> Bool
+ignores ign path =
+  let path' = either splitDirectories id path
+   in ignoresInner ign path'
+
+ignoresIO :: Ignore -> Either OsPath [OsPath] -> IO Bool
+ignoresIO ign path = do
+  let path' = either id joinPath path
+  dir <- doesDirectoryExist path'
+  return $ ignores ign path dir
