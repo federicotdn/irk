@@ -42,6 +42,8 @@ spec = do
       ignores (parse "!bar") (os "foo") False `shouldBe` False
       ignores (parse "foo") (os "foo") False `shouldBe` True
       ignores (parse "/") (os "foo") False `shouldBe` False
+      ignores (parse "/") (os "foo") True `shouldBe` False
+      ignores (parse "/") (os "") False `shouldBe` False
       ignores (parse "!foo") (os "foo") False `shouldBe` False
       ignores (parse "foo") (os "foo") True `shouldBe` True
       ignores (parse "foo/") (os "foo") False `shouldBe` False
@@ -89,7 +91,12 @@ spec = do
       ignores (parse "/**/foo") (os "x/y/foo") False `shouldBe` True
       ignores (parse "!foo/") (os "foo") True `shouldBe` False
       ignores (parse "!foo") (os "foo") True `shouldBe` False
+      ignores (parse ".*") (os "foo") False `shouldBe` False
+      ignores (parse ".*") (os ".foo") False `shouldBe` True
+      ignores (parse ".*") (os "bar/.foo") False `shouldBe` True
+      ignores (parse ".*") (os "bar/.") False `shouldBe` True
       ignores (parse "*.py") (os "test.py") False `shouldBe` True
+      ignores (parse "*.py") (os "test.c") False `shouldBe` False
       ignores (parse "*.py") (os "foo/test.py") False `shouldBe` True
       ignores (parse "foo/*.py") (os "test.py") False `shouldBe` False
       ignores (parse "foo/*.py") (os "foo/test.py") False `shouldBe` True

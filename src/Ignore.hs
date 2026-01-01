@@ -43,16 +43,25 @@ parsePattern source =
           dir = "/" `T.isSuffixOf` source
        in Pattern (prefix ++ intersperse Sep (map parsePart parts)) dir
 
+simplify :: Pattern -> Pattern
+simplify (Negated pat) = Negated (simplify pat)
+simplify pat@(Pattern parts dir) = case parts of
+  [Sep] -> Pattern [] dir
+  [DAsterisk] -> Pattern [Path $ os "*"] dir
+  (Sep : DAsterisk : rest) -> Pattern (DAsterisk : rest) dir
+  _ -> pat
+
 parse :: Text -> Ignore
 parse source =
   let sourceLines = filter (not . T.null) $ map T.strip $ T.lines source
       patterns = filter (\l -> T.head l /= '#') sourceLines
-   in Ignore (map parsePattern patterns)
+   in Ignore (map (simplify . parsePattern) patterns)
 
 -- TODO: Not complete, though it's good enough for most use cases.
 pathMatches :: OsPath -> OsPath -> Bool
 pathMatches path target
   | os "*" `OS.isPrefixOf` target = OS.tail target `OS.isSuffixOf` path
+  | os "*" `OS.isSuffixOf` target = OS.init target `OS.isPrefixOf` path
   | path == target = True
   | otherwise = False
 
