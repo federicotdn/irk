@@ -40,7 +40,8 @@ ignore =
   baseIgnore
     <> parse
       ( T.unlines
-          [ "/venv/",
+          [ "__pycache__",
+            "/venv/",
             "/env/",
             "!*.py"
           ]
@@ -51,7 +52,8 @@ ignoreForVendor =
   baseIgnore
     <> parse
       ( T.unlines
-          [ "/*/",
+          [ "__pycache__",
+            "/*/",
             "!/.venv/",
             "!/.env/",
             "!/venv/",
