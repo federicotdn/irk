@@ -8,7 +8,7 @@ module Ignore
   )
 where
 
-import Data.List (intersperse, tails)
+import Data.List (tails)
 import Data.Maybe (isJust, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -16,7 +16,7 @@ import System.OsPath (OsPath, splitDirectories, unsafeEncodeUtf)
 import qualified System.OsString as OS
 import Utils (os)
 
-data Part = Sep | DAsterisk | Segment OsPath deriving (Show, Eq)
+data Part = DAsterisk | Segment OsPath deriving (Show, Eq)
 
 data Pattern = Pattern
   { pParts :: [Part],
@@ -33,7 +33,6 @@ instance Semigroup Ignore where
 
 parsePart :: Text -> Part
 parsePart source = case source of
-  "/" -> Sep
   "**" -> DAsterisk
   -- TODO: Make it safe
   _ -> Segment $ unsafeEncodeUtf (T.unpack source)
@@ -44,11 +43,10 @@ parsePattern source =
         if not (T.null source) && T.head source == '!'
           then (T.tail source, True)
           else (source, False)
-      prefix = [Sep | "/" `T.isPrefixOf` source']
       parts = filter (not . T.null) $ T.splitOn "/" source'
-      parts' = prefix ++ intersperse Sep (map parsePart parts)
+      parts' = map parsePart parts
       dir = "/" `T.isSuffixOf` source'
-      anchored = Sep `elem` parts'
+      anchored = "/" `T.isPrefixOf` source' || length parts' > 1
    in Pattern
         { pParts = parts',
           pDir = dir,
@@ -56,17 +54,11 @@ parsePattern source =
           pAnchored = anchored
         }
 
-simplify :: Pattern -> Pattern
-simplify pat@Pattern {pParts = parts} = case parts of
-  [DAsterisk] -> pat {pParts = [Segment $ os "*"]}
-  (Sep : rest) -> pat {pParts = rest}
-  _ -> pat
-
 parse :: Text -> Ignore
 parse source =
   let sourceLines = filter (not . T.null) $ map T.strip $ T.lines source
       patterns = filter (\l -> T.head l /= '#') sourceLines
-   in Ignore (map (simplify . parsePattern) patterns)
+   in Ignore (map parsePattern patterns)
 
 -- TODO: Not complete, though it's good enough for most use cases.
 segmentMatches :: OsPath -> OsPath -> Bool
@@ -88,7 +80,6 @@ patternIgnores' pat@Pattern {pParts = parts} splitPath =
       if null parts then Just True else Nothing
     else case parts of
       [] -> Nothing
-      (Sep : rest) -> patternIgnores' (pat {pParts = rest}) splitPath
       (DAsterisk : rest) ->
         if null rest
           then Just True

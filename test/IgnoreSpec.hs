@@ -35,11 +35,11 @@ spec = do
       parse "path/" `shouldBe` Ignore [pat [path "path"] True False False]
       parse "path///" `shouldBe` Ignore [pat [path "path"] True False False]
       parse "/path/" `shouldBe` Ignore [pat [path "path"] True False True]
-      parse "/path/foo/" `shouldBe` Ignore [pat [path "path", Sep, path "foo"] True False True]
-      parse "/path///foo/" `shouldBe` Ignore [pat [path "path", Sep, path "foo"] True False True]
-      parse "**/path/" `shouldBe` Ignore [pat [DAsterisk, Sep, path "path"] True False True]
-      parse "/path/**" `shouldBe` Ignore [pat [path "path", Sep, DAsterisk] False False True]
-      parse "/path/**/" `shouldBe` Ignore [pat [path "path", Sep, DAsterisk] True False True]
+      parse "/path/foo/" `shouldBe` Ignore [pat [path "path", path "foo"] True False True]
+      parse "/path///foo/" `shouldBe` Ignore [pat [path "path", path "foo"] True False True]
+      parse "**/path/" `shouldBe` Ignore [pat [DAsterisk, path "path"] True False True]
+      parse "/path/**" `shouldBe` Ignore [pat [path "path", DAsterisk] False False True]
+      parse "/path/**/" `shouldBe` Ignore [pat [path "path", DAsterisk] True False True]
 
   describe "ignores" $ do
     it "ignores paths correctly (single pattern)" $ do
@@ -100,7 +100,7 @@ spec = do
       ignores (parse "a/**/b/**/c") (os "a/x/b/y/c") False `shouldBe` True
       ignores (parse "a/**/m/**/c") (os "a/x/b/y/c") False `shouldBe` False
       ignores (parse "/**") (os "foo") False `shouldBe` True
-      ignores (parse "/**") (os "foo/bar") False `shouldBe` True
+      ignores (parse "/**") (os "foo/yyy") False `shouldBe` True
       ignores (parse "/**/foo") (os "foo") False `shouldBe` True
       ignores (parse "/**/foo") (os "x/foo") False `shouldBe` True
       ignores (parse "/**/foo") (os "x/y/foo") False `shouldBe` True
