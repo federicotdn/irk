@@ -31,10 +31,11 @@ ignore :: Ignore
 ignore =
   baseIgnore
     <> parse
-      "\
-      \ !*.c     \n\
-      \ !*.h     \n\
-      \"
+      ( T.unlines
+          [ "!*.c",
+            "!*.h"
+          ]
+      )
 
 searchPath :: IrkFile -> IO [IrkFile]
 searchPath origin = do

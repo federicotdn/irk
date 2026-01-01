@@ -38,12 +38,13 @@ type Parser = Parsec Void Text
 baseIgnore :: Ignore
 baseIgnore =
   I.parse
-    "\
-    \ *             \n\
-    \ !*/           \n\
-    \ .*/           \n\
-    \ __pycache__   \n\
-    \"
+    ( T.unlines
+        [ "*",
+          "!*/",
+          ".*/",
+          "__pycache__"
+        ]
+    )
 
 irkFileIgnored :: Ignore -> IrkFile -> Bool
 irkFileIgnored ign f = I.ignores' ign (iRelPathParts f) (iDir f)

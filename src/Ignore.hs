@@ -2,6 +2,7 @@ module Ignore
   ( Ignore (..),
     Part (..),
     Pattern (..),
+    Segment (..),
     parse,
     ignores,
     ignores',
@@ -14,9 +15,10 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import System.OsPath (OsPath, splitDirectories, unsafeEncodeUtf)
 import qualified System.OsString as OS
-import Utils (os)
 
-data Part = DAsterisk | Segment OsPath deriving (Show, Eq)
+data Segment = All | Const OsPath | Prefix OsPath | Suffix OsPath | Glob OsPath deriving (Show, Eq)
+
+data Part = DAsterisk | Segment Segment deriving (Show, Eq)
 
 data Pattern = Pattern
   { pParts :: [Part],
@@ -31,11 +33,21 @@ newtype Ignore = Ignore [Pattern] deriving (Show, Eq)
 instance Semigroup Ignore where
   (Ignore p1) <> (Ignore p2) = Ignore (p1 <> p2)
 
-parsePart :: Text -> Part
-parsePart source = case source of
+parseSegmentInner :: Text -> Segment
+parseSegmentInner source
+  | source == "*" = All
+  | acount == 1 && "*" `T.isPrefixOf` source = Suffix (OS.tail encoded)
+  | acount == 1 && "*" `T.isSuffixOf` source = Prefix (OS.init encoded)
+  | otherwise = Const encoded
+  where
+    acount = T.count "*" source
+    encoded = unsafeEncodeUtf (T.unpack source)
+
+parseSegment :: Text -> Part
+parseSegment source = case source of
   "**" -> DAsterisk
   -- TODO: Make it safe
-  _ -> Segment $ unsafeEncodeUtf (T.unpack source)
+  _ -> Segment (parseSegmentInner source)
 
 parsePattern :: Text -> Pattern
 parsePattern source =
@@ -43,12 +55,12 @@ parsePattern source =
         if not (T.null source) && T.head source == '!'
           then (T.tail source, True)
           else (source, False)
-      parts = filter (not . T.null) $ T.splitOn "/" source'
-      parts' = map parsePart parts
+      segments = filter (not . T.null) $ T.splitOn "/" source'
+      segments' = map parseSegment segments
       dir = "/" `T.isSuffixOf` source'
-      anchored = "/" `T.isPrefixOf` source' || length parts' > 1
+      anchored = "/" `T.isPrefixOf` source' || length segments' > 1
    in Pattern
-        { pParts = parts',
+        { pParts = segments',
           pDir = dir,
           pNegated = negated,
           pAnchored = anchored
@@ -61,12 +73,13 @@ parse source =
    in Ignore (map parsePattern patterns)
 
 -- TODO: Not complete, though it's good enough for most use cases.
-segmentMatches :: OsPath -> OsPath -> Bool
-segmentMatches path target
-  | os "*" `OS.isPrefixOf` target = OS.tail target `OS.isSuffixOf` path
-  | os "*" `OS.isSuffixOf` target = OS.init target `OS.isPrefixOf` path
-  | path == target = True
-  | otherwise = False
+segmentMatches :: Segment -> OsPath -> Bool
+segmentMatches target path = case target of
+  All -> True
+  Const val -> path == val
+  Prefix val -> val `OS.isPrefixOf` path
+  Suffix val -> val `OS.isSuffixOf` path
+  _ -> undefined
 
 patternIgnores' :: Pattern -> [OsPath] -> Maybe Bool
 patternIgnores' pat@Pattern {pNegated = True} splitPath =
@@ -88,7 +101,7 @@ patternIgnores' pat@Pattern {pParts = parts} splitPath =
              in if null matches then Nothing else Just (or matches)
       (Segment seg : rest) ->
         let tailPath = tail splitPath
-            match = segmentMatches (head splitPath) seg
+            match = segmentMatches seg (head splitPath)
             continued = patternIgnores' (pat {pParts = rest}) tailPath
             retry = if null tailPath then Nothing else patternIgnores' pat tailPath
          in if pAnchored pat

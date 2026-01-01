@@ -7,7 +7,7 @@ import Test.Hspec
 import Utils (os)
 
 path :: String -> Part
-path p = Segment $ os p
+path p = Segment $ Const (os p)
 
 parseln :: [Text] -> Ignore
 parseln patterns = parse (T.intercalate "\n" patterns)

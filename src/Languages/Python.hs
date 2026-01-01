@@ -39,25 +39,27 @@ ignore :: Ignore
 ignore =
   baseIgnore
     <> parse
-      "\
-      \ /venv/    \n\
-      \ /env/     \n\
-      \ !*.py     \n\
-      \"
+      ( T.unlines
+          [ "/venv/",
+            "/env/",
+            "!*.py"
+          ]
+      )
 
 ignoreForVendor :: Ignore
 ignoreForVendor =
   baseIgnore
     <> parse
-      "\
-      \ /*/        \n\
-      \ !/.venv/   \n\
-      \ !/.env/    \n\
-      \ !/venv/    \n\
-      \ !/env/     \n\
-      \ !*.py      \n\
-      \ /*.py      \n\
-      \"
+      ( T.unlines
+          [ "/*/",
+            "!/.venv/",
+            "!/.env/",
+            "!/venv/",
+            "!/env/",
+            "!*.py",
+            "/*.py"
+          ]
+      )
 
 searchPath :: IrkFile -> IO [IrkFile]
 searchPath origin = do

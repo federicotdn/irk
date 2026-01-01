@@ -31,22 +31,24 @@ ignore :: Ignore
 ignore =
   baseIgnore
     <> parse
-      "\
-      \ /vendor/  \n\
-      \ !*.hs     \n\
-      \ !*.hsc    \n\
-      \"
+      ( T.unlines
+          [ "/vendor/",
+            "!*.hs",
+            "!*.hsc"
+          ]
+      )
 
 ignoreForVendor :: Ignore
 ignoreForVendor =
   baseIgnore
     <> parse
-      "\
-      \ /*/        \n\
-      \ !/vendor/  \n\
-      \ !*.hs      \n\
-      \ !*.hsc     \n\
-      \"
+      ( T.unlines
+          [ "/*/",
+            "!/vendor/",
+            "!*.hs",
+            "!*.hsc"
+          ]
+      )
 
 searchPath :: IrkFile -> IO [IrkFile]
 searchPath origin = do
