@@ -41,13 +41,7 @@ baseIgnore =
     "\
     \ *             \n\
     \ !*/           \n\
-    \ .svn          \n\
-    \ .hg           \n\
-    \ .yarn         \n\
-    \ .nx           \n\
-    \ .ruff_cache   \n\
-    \ .mypy_cache   \n\
-    \ .pytest_cache \n\
+    \ .*/           \n\
     \ __pycache__   \n\
     \"
 

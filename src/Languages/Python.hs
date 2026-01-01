@@ -40,8 +40,6 @@ ignore =
   baseIgnore
     <> parse
       "\
-      \ /.venv/   \n\
-      \ /.env/    \n\
       \ /venv/    \n\
       \ /env/     \n\
       \ !*.py     \n\
