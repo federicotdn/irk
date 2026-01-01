@@ -120,6 +120,9 @@ spec = do
       ignores (parse "a/**/b") (os "a/b") False `shouldBe` True
       ignores (parse "a/**/b") (os "a/x/b") False `shouldBe` True
       ignores (parse "a/**/b") (os "a/x/y/b") False `shouldBe` True
+      ignores (parse "foo/*") (os "foo/test.json") False `shouldBe` True
+      ignores (parse "foo/*") (os "foo/bar") True `shouldBe` True
+      ignores (parse "foo/*") (os "foo/bar/hello.c") False `shouldBe` False
 
     it "ignores paths correctly (multiple patterns)" $ do
       ignores (parseln ["foo", "!foo"]) (os "foo") False `shouldBe` False
