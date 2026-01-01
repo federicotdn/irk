@@ -12,6 +12,15 @@ path p = Path $ os p
 parseln :: [Text] -> Ignore
 parseln patterns = parse (T.intercalate "\n" patterns)
 
+pat :: [Part] -> Bool -> Bool -> Bool -> Pattern
+pat parts dir negated anchored =
+  Pattern
+    { pParts = parts,
+      pDir = dir,
+      pNegated = negated,
+      pAnchored = anchored
+    }
+
 spec :: Spec
 spec = do
   describe "parse" $ do
@@ -21,16 +30,16 @@ spec = do
       parse "# test" `shouldBe` Ignore []
       parse "  # test " `shouldBe` Ignore []
       parse "  # test\n#test" `shouldBe` Ignore []
-      parse "path" `shouldBe` Ignore [Pattern [path "path"] False]
-      parse "!path" `shouldBe` Ignore [Negated $ Pattern [path "path"] False]
-      parse "path/" `shouldBe` Ignore [Pattern [path "path"] True]
-      parse "path///" `shouldBe` Ignore [Pattern [path "path"] True]
-      parse "/path/" `shouldBe` Ignore [Pattern [Sep, path "path"] True]
-      parse "/path/foo/" `shouldBe` Ignore [Pattern [Sep, path "path", Sep, path "foo"] True]
-      parse "/path///foo/" `shouldBe` Ignore [Pattern [Sep, path "path", Sep, path "foo"] True]
-      parse "**/path/" `shouldBe` Ignore [Pattern [DAsterisk, Sep, path "path"] True]
-      parse "/path/**" `shouldBe` Ignore [Pattern [Sep, path "path", Sep, DAsterisk] False]
-      parse "/path/**/" `shouldBe` Ignore [Pattern [Sep, path "path", Sep, DAsterisk] True]
+      parse "path" `shouldBe` Ignore [pat [path "path"] False False False]
+      parse "!path" `shouldBe` Ignore [pat [path "path"] False True False]
+      parse "path/" `shouldBe` Ignore [pat [path "path"] True False False]
+      parse "path///" `shouldBe` Ignore [pat [path "path"] True False False]
+      parse "/path/" `shouldBe` Ignore [pat [Sep, path "path"] True False True]
+      parse "/path/foo/" `shouldBe` Ignore [pat [Sep, path "path", Sep, path "foo"] True False True]
+      parse "/path///foo/" `shouldBe` Ignore [pat [Sep, path "path", Sep, path "foo"] True False True]
+      parse "**/path/" `shouldBe` Ignore [pat [DAsterisk, Sep, path "path"] True False True]
+      parse "/path/**" `shouldBe` Ignore [pat [Sep, path "path", Sep, DAsterisk] False False True]
+      parse "/path/**/" `shouldBe` Ignore [pat [Sep, path "path", Sep, DAsterisk] True False True]
 
   describe "ignores" $ do
     it "ignores paths correctly (single pattern)" $ do

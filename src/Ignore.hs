@@ -18,7 +18,13 @@ import Utils (os)
 
 data Part = Sep | DAsterisk | Path OsPath deriving (Show, Eq)
 
-data Pattern = Negated Pattern | Pattern [Part] Bool deriving (Show, Eq)
+data Pattern = Pattern
+  { pParts :: [Part],
+    pDir :: Bool,
+    pNegated :: Bool,
+    pAnchored :: Bool
+  }
+  deriving (Show, Eq)
 
 newtype Ignore = Ignore [Pattern] deriving (Show, Eq)
 
@@ -34,21 +40,28 @@ parsePart source = case source of
 
 parsePattern :: Text -> Pattern
 parsePattern source =
-  if not (T.null source) && T.head source == '!'
-    then
-      Negated $ parsePattern (T.tail source)
-    else
-      let parts = filter (not . T.null) $ T.splitOn "/" source
-          prefix = [Sep | "/" `T.isPrefixOf` source]
-          dir = "/" `T.isSuffixOf` source
-       in Pattern (prefix ++ intersperse Sep (map parsePart parts)) dir
+  let (source', negated) =
+        if not (T.null source) && T.head source == '!'
+          then (T.tail source, True)
+          else (source, False)
+      prefix = [Sep | "/" `T.isPrefixOf` source']
+      parts = filter (not . T.null) $ T.splitOn "/" source'
+      parts' = prefix ++ intersperse Sep (map parsePart parts)
+      dir = "/" `T.isSuffixOf` source'
+      anchored = not (null prefix) || Sep `elem` parts'
+   in Pattern
+        { pParts = parts',
+          pDir = dir,
+          pNegated = negated,
+          pAnchored = anchored
+        }
 
 simplify :: Pattern -> Pattern
-simplify (Negated pat) = Negated (simplify pat)
-simplify pat@(Pattern parts dir) = case parts of
-  [Sep] -> Pattern [] dir
-  [DAsterisk] -> Pattern [Path $ os "*"] dir
-  (Sep : DAsterisk : rest) -> Pattern (DAsterisk : rest) dir
+simplify pat@Pattern {pParts = parts} = case parts of
+  [Sep] -> pat {pParts = []}
+  [DAsterisk] -> pat {pParts = [Path $ os "*"]}
+  (Sep : DAsterisk : rest) -> pat {pParts = DAsterisk : rest}
+  (Sep : p@(Path _) : Sep : rest) -> pat {pParts = [p, Sep] ++ rest}
   _ -> pat
 
 parse :: Text -> Ignore
@@ -65,10 +78,10 @@ pathMatches path target
   | path == target = True
   | otherwise = False
 
-patternIgnores' :: Pattern -> Bool -> [OsPath] -> Maybe Bool
-patternIgnores' (Negated pat) anchored splitPath =
-  not <$> patternIgnores' pat anchored splitPath
-patternIgnores' pat@(Pattern parts dir) anchored splitPath =
+patternIgnores' :: Pattern -> [OsPath] -> Maybe Bool
+patternIgnores' pat@Pattern {pNegated = True} splitPath =
+  not <$> patternIgnores' pat {pNegated = False} splitPath
+patternIgnores' pat@Pattern {pParts = parts} splitPath =
   if null splitPath
     then
       -- Exhausted path without returning False, meaning we might
@@ -77,35 +90,27 @@ patternIgnores' pat@(Pattern parts dir) anchored splitPath =
       if null parts then Just True else Nothing
     else case parts of
       [] -> Nothing
-      (Sep : rest) -> patternIgnores' (Pattern rest dir) anchored splitPath
+      (Sep : rest) -> patternIgnores' (pat {pParts = rest}) splitPath
       (DAsterisk : rest) ->
         if null rest
           then Just True
           else
-            let matches = mapMaybe (patternIgnores' (Pattern rest dir) anchored) (tails splitPath)
+            let matches = mapMaybe (patternIgnores' (pat {pParts = rest})) (tails splitPath)
              in if null matches then Nothing else Just (or matches)
       (Path target : rest) ->
         let tailPath = tail splitPath
             match = pathMatches (head splitPath) target
-            continued = patternIgnores' (Pattern rest dir) anchored tailPath
-            retry = if null tailPath then Nothing else patternIgnores' pat anchored tailPath
-         in if anchored
+            continued = patternIgnores' (pat {pParts = rest}) tailPath
+            retry = if null tailPath then Nothing else patternIgnores' pat tailPath
+         in if pAnchored pat
               then if match then continued else Nothing
               else (if match && isJust continued then continued else retry)
 
-patternDir :: Pattern -> Bool
-patternDir (Pattern _ dir) = dir
-patternDir (Negated pat) = patternDir pat
-
-patternAnchored :: Pattern -> Bool
-patternAnchored (Pattern parts _) = Sep `elem` parts
-patternAnchored (Negated pat) = patternAnchored pat
-
 patternIgnores :: Pattern -> [OsPath] -> Bool -> Maybe Bool
 patternIgnores pat path dir =
-  if (patternDir pat && not dir) || null path
+  if (pDir pat && not dir) || null path
     then Nothing
-    else patternIgnores' pat (patternAnchored pat) path
+    else patternIgnores' pat path
 
 -- TODO: Weird naming
 ignores' :: Ignore -> [OsPath] -> Bool -> Bool
