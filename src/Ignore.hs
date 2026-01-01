@@ -4,7 +4,6 @@ module Ignore
     Segment (..),
     parse,
     ignores,
-    ignoresIO,
   )
 where
 
@@ -13,8 +12,7 @@ import Data.Maybe (isJust, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.IO.Encoding (utf16le, utf8)
-import System.Directory.OsPath (doesDirectoryExist)
-import System.OsPath (OsPath, encodeWith, joinPath, splitDirectories)
+import System.OsPath (OsPath, encodeWith, splitDirectories)
 import qualified System.OsString as OS
 
 -- TODO: Add a Glob constructor to match more complex segments
@@ -76,16 +74,17 @@ parse source =
 
 segmentMatches :: Segment -> OsPath -> Bool
 segmentMatches target path = case target of
-  DAsterisk -> error "Unhandled double asterisk pattern"
+  -- NOTE: DAsterisk is already handled in 'patternIgnoresInner'.
+  DAsterisk -> error "Unhandled ** pattern"
   Asterisk -> True
   Const val -> path == val
   Prefix val -> val `OS.isPrefixOf` path
   Suffix val -> val `OS.isSuffixOf` path
 
-patternIgnores' :: Pattern -> [OsPath] -> Maybe Bool
-patternIgnores' pat@Pattern {pNegated = True} splitPath =
-  not <$> patternIgnores' pat {pNegated = False} splitPath
-patternIgnores' pat@Pattern {pSegments = segs} splitPath =
+patternIgnoresInner :: Pattern -> [OsPath] -> Maybe Bool
+patternIgnoresInner pat@Pattern {pNegated = True} splitPath =
+  not <$> patternIgnoresInner pat {pNegated = False} splitPath
+patternIgnoresInner pat@Pattern {pSegments = segs} splitPath =
   if null splitPath
     then
       -- Exhausted path without returning False, meaning we might
@@ -98,13 +97,13 @@ patternIgnores' pat@Pattern {pSegments = segs} splitPath =
         if null rest
           then Just True
           else
-            let matches = mapMaybe (patternIgnores' (pat {pSegments = rest})) (init $ tails splitPath)
+            let matches = mapMaybe (patternIgnoresInner (pat {pSegments = rest})) (init $ tails splitPath)
              in if null matches then Nothing else Just (or matches)
       (seg : rest) ->
         let tailPath = tail splitPath
             match = segmentMatches seg (head splitPath)
-            continued = patternIgnores' (pat {pSegments = rest}) tailPath
-            retry = if null tailPath then Nothing else patternIgnores' pat tailPath
+            continued = patternIgnoresInner (pat {pSegments = rest}) tailPath
+            retry = if null tailPath then Nothing else patternIgnoresInner pat tailPath
          in if pAnchored pat
               then if match then continued else Nothing
               else (if match && isJust continued then continued else retry)
@@ -113,7 +112,7 @@ patternIgnores :: Pattern -> [OsPath] -> Bool -> Maybe Bool
 patternIgnores pat splitPath dir =
   if (pDir pat && not dir) || null splitPath
     then Nothing
-    else patternIgnores' pat splitPath
+    else patternIgnoresInner pat splitPath
 
 ignoresInner :: Ignore -> [OsPath] -> Bool -> Bool
 ignoresInner (Ignore patterns) splitPath dir =
@@ -123,9 +122,3 @@ ignores :: Ignore -> Either OsPath [OsPath] -> Bool -> Bool
 ignores ign path =
   let path' = either splitDirectories id path
    in ignoresInner ign path'
-
-ignoresIO :: Ignore -> Either OsPath [OsPath] -> IO Bool
-ignoresIO ign path = do
-  let path' = either id joinPath path
-  dir <- doesDirectoryExist path'
-  return $ ignores ign path dir
