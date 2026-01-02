@@ -2,8 +2,7 @@ module Languages.Python
   ( extensions,
     searchPath,
     symbolAtPosition,
-    findSymbolDefinition,
-    processResults,
+    findSymbolDefinition
   )
 where
 
@@ -18,7 +17,7 @@ import Languages.Common
     searchForMatch,
     symbolAtPos,
   )
-import System.OsPath (OsString, joinPath, splitDirectories)
+import System.OsPath (OsString)
 import Text.Megaparsec
   ( SourcePos,
     choice,
@@ -58,6 +57,7 @@ ignoreForVendor =
             "!/.env/",
             "!/venv/",
             "!/env/",
+            "lib64/",
             "!*.py",
             "/*.py"
           ]
@@ -128,12 +128,3 @@ findFuncDef name = do
   _ <- takeWhile1P Nothing (/= ':')
   _ <- char ':'
   return pos
-
-processResults :: [IrkFilePos] -> [IrkFilePos]
-processResults positions = filter include positions
-  where
-    include (IrkFilePos IrkFile {iPath = path} _ _) =
-      let replaced = replaceDir path (os "lib64") (os "lib")
-       in replaced `notElem` paths || replaced == path
-    paths = map (\(IrkFilePos IrkFile {iPath = path} _ _) -> path) positions
-    replaceDir path from to = joinPath $ map (\part -> if part == from then to else part) (splitDirectories path)

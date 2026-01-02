@@ -16,7 +16,7 @@ import Data.Maybe (fromMaybe, maybeToList)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8Lenient, encodeUtf8)
 import Infix (isInfixOfC)
-import Language (Language, lFindSymbolDefinition, lProcessResults, lSearchPath, lSymbolAtPosition)
+import Language (Language, lFindSymbolDefinition, lSearchPath, lSymbolAtPosition)
 import System.OsPath (OsPath)
 import System.OsString (empty)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..), file, workspaceRoot)
@@ -102,4 +102,4 @@ findSymbolDefinition lang symbol searches = do
       positions <- findSymbolDefinitionInPaths lang symbol paths
       case positions of
         [] -> findSymbolDefinition lang symbol rest
-        _ -> return $ lProcessResults lang positions
+        _ -> return positions

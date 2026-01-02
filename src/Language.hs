@@ -22,8 +22,7 @@ data Language = Language
     lExtensions :: [OsString],
     lSearchPath :: IrkFile -> IO [IrkFile],
     lSymbolAtPosition :: Text -> IrkFilePos -> Maybe Text,
-    lFindSymbolDefinition :: Text -> Text -> [IrkFilePos],
-    lProcessResults :: [IrkFilePos] -> [IrkFilePos]
+    lFindSymbolDefinition :: Text -> Text -> [IrkFilePos]
   }
 
 languages :: Map String Language
@@ -35,8 +34,7 @@ languages =
             lExtensions = LangHs.extensions,
             lSearchPath = LangHs.searchPath,
             lSymbolAtPosition = LangHs.symbolAtPosition,
-            lFindSymbolDefinition = LangHs.findSymbolDefinition,
-            lProcessResults = id
+            lFindSymbolDefinition = LangHs.findSymbolDefinition
           }
       ),
       ( "python",
@@ -45,8 +43,7 @@ languages =
             lExtensions = LangPy.extensions,
             lSearchPath = LangPy.searchPath,
             lSymbolAtPosition = LangPy.symbolAtPosition,
-            lFindSymbolDefinition = LangPy.findSymbolDefinition,
-            lProcessResults = LangPy.processResults
+            lFindSymbolDefinition = LangPy.findSymbolDefinition
           }
       ),
       ( "go",
@@ -55,8 +52,7 @@ languages =
             lExtensions = LangGo.extensions,
             lSearchPath = LangGo.searchPath,
             lSymbolAtPosition = LangGo.symbolAtPosition,
-            lFindSymbolDefinition = LangGo.findSymbolDefinition,
-            lProcessResults = id
+            lFindSymbolDefinition = LangGo.findSymbolDefinition
           }
       ),
       ( "c",
@@ -65,8 +61,7 @@ languages =
             lExtensions = LangC.extensions,
             lSearchPath = LangC.searchPath,
             lSymbolAtPosition = LangC.symbolAtPosition,
-            lFindSymbolDefinition = LangC.findSymbolDefinition,
-            lProcessResults = id
+            lFindSymbolDefinition = LangC.findSymbolDefinition
           }
       )
     ]

@@ -4,8 +4,8 @@ import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import Language
 import Test.Hspec
-import Testing (asNative, readTestTextFile)
-import Types (IrkFile (..), IrkFilePos (..), file)
+import Testing (readTestTextFile)
+import Types (IrkFilePos (..), file)
 import Utils (os)
 
 spec :: Spec
@@ -16,15 +16,6 @@ spec = do
 
   describe "python" $ do
     let py = fromJust $ Map.lookup "python" languages
-
-    it "processes results correctly" $ do
-      let pos path = IrkFilePos (file {iPath = asNative (os path)}) 0 0
-      lProcessResults py [] `shouldBe` []
-      lProcessResults py [pos "a/b.py"] `shouldBe` [pos "a/b.py"]
-      lProcessResults py [pos "a/lib.py", pos "a/lib64.py"] `shouldBe` [pos "a/lib.py", pos "a/lib64.py"]
-      lProcessResults py [pos ".venv/lib/a/b.py"] `shouldBe` [pos ".venv/lib/a/b.py"]
-      lProcessResults py [pos ".venv/lib64/a/b.py"] `shouldBe` [pos ".venv/lib64/a/b.py"]
-      lProcessResults py [pos ".venv/lib64/a/b.py", pos ".venv/lib/a/b.py"] `shouldBe` [pos ".venv/lib/a/b.py"]
 
     it "finds the symbol definition(s)" $ do
       pythonExample <- readTestTextFile "python/test.py"
