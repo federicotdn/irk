@@ -2,7 +2,7 @@ module Languages.Python
   ( extensions,
     searchPath,
     symbolAtPosition,
-    findSymbolDefinition
+    findSymbolDefinition,
   )
 where
 
