@@ -20,7 +20,7 @@ import Languages.Common
   )
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, choice, getSourcePos, notFollowedBy, takeWhile1P, try, (<|>))
-import Text.Megaparsec.Char (char, space, space1, string)
+import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (oss)
 
@@ -83,23 +83,23 @@ findDef :: Text -> Parser SourcePos
 findDef name = do
   pos <- getSourcePos
   _ <- string name
-  _ <- space
+  _ <- hspace
   _ <- string "::"
   return pos
 
 findTypeDef :: Text -> Parser SourcePos
 findTypeDef name = do
   _ <- string "data" <|> string "newtype" <|> string "type"
-  _ <- space1
+  _ <- hspace1
   pos <- getSourcePos
   _ <- string name
-  _ <- space1 <|> void (char '=')
+  _ <- hspace1 <|> void (char '=')
   return pos
 
 findClassDef :: Text -> Parser SourcePos
 findClassDef name = do
   _ <- string "class"
-  _ <- space1
+  _ <- hspace1
   pos <- getSourcePos
   _ <- string name
   _ <- takeWhile1P Nothing (`notElem` ['\n', '='])
@@ -109,10 +109,10 @@ findClassDef name = do
 findClassConstrainedDef :: Text -> Parser SourcePos
 findClassConstrainedDef name = do
   _ <- string "class"
-  _ <- space1
+  _ <- hspace1
   _ <- takeWhile1P Nothing (`notElem` ['\n', '='])
   _ <- string "=>"
-  _ <- space
+  _ <- hspace
   pos <- getSourcePos
   _ <- string name
   return pos
@@ -120,8 +120,8 @@ findClassConstrainedDef name = do
 findModuleDef :: Text -> Parser SourcePos
 findModuleDef name = do
   _ <- string "module"
-  _ <- space1
+  _ <- hspace1
   pos <- getSourcePos
   _ <- string name
-  _ <- space1 <|> void (char '(')
+  _ <- hspace1 <|> void (char '(')
   return pos

@@ -32,3 +32,11 @@ void ident6(int a, float b)
 static void ident10() {
   ;
 }
+
+void
+ident11 (struct something *foo)
+{
+  ;
+}
+
+// comment 3

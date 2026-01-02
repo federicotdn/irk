@@ -41,7 +41,7 @@ baseIgnore =
     ( T.unlines
         [ "*", --   Ignore all files & directories at all depths.
           "!*/", -- Un-ignore all directories so that we can recurse into them.
-          ".*/" -- Re-ignore all hidden directories (.foo) at all depths.
+          ".*/" --  Re-ignore all hidden directories (.foo) at all depths.
         ]
     )
 
