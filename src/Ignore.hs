@@ -43,11 +43,14 @@ parseSegment :: Text -> Maybe Segment
 parseSegment source
   | source == "**" = Just DAsterisk
   | source == "*" = Just Asterisk
-  | acount == 1 && "*" `T.isPrefixOf` source = Suffix . OS.tail <$> encoded
-  | acount == 1 && "*" `T.isSuffixOf` source = Prefix . OS.init <$> encoded
+  | scount == 0 && acount == 1 && aprefix = Suffix . OS.tail <$> encoded
+  | scount == 0 && acount == 1 && asuffix = Prefix . OS.init <$> encoded
   | otherwise = Const <$> encoded
   where
+    aprefix = "*" `T.isPrefixOf` source
+    asuffix = "*" `T.isSuffixOf` source
     acount = T.count "*" source
+    scount = T.length (T.filter (`elem` ['[', ']', '?', '\\']) source)
     encoded = either (const Nothing) Just $ encodeWith utf8 utf16le (T.unpack source)
 
 parsePattern :: Text -> Pattern
