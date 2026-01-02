@@ -198,7 +198,7 @@ benchmark caseName profile useRg = do
 
               sep
               putStrLn "profiling irk..."
-              let cmd = "irk find -w " ++ repoPath ++ " -l " ++ language ++ " " ++ symbol ++ " +RTS -pj -RTS"
+              let cmd = "irk find -w " ++ repoPath ++ " -l " ++ language ++ " " ++ symbol ++ " +RTS -pj -N1 -RTS"
 
               (time, _) <- timeIt $ run cmd
               printf "elapsed time: %.3fs\n" time
