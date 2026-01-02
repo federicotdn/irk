@@ -39,7 +39,7 @@ baseIgnore :: Ignore
 baseIgnore =
   I.parse
     ( T.unlines
-        [ "*", --   Ignore all files at all depths.
+        [ "*", --   Ignore all files & directories at all depths.
           "!*/", -- Un-ignore all directories so that we can recurse into them.
           ".*/" -- Re-ignore all hidden directories (.foo) at all depths.
         ]

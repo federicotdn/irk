@@ -75,12 +75,12 @@ parse source =
 
 segmentMatches :: Segment -> OsPath -> Bool
 segmentMatches target path = case target of
-  -- NOTE: DAsterisk is already handled in 'patternIgnoresInner'.
-  DAsterisk -> error "Unhandled ** pattern"
   Asterisk -> True
   Const val -> path == val
-  Prefix val -> val `OS.isPrefixOf` path
   Suffix val -> val `OS.isSuffixOf` path
+  Prefix val -> val `OS.isPrefixOf` path
+  -- NOTE: DAsterisk is already handled in 'patternIgnoresInner'.
+  DAsterisk -> error "Unhandled ** pattern"
 
 patternIgnoresInner :: Pattern -> [OsPath] -> Maybe Bool
 patternIgnoresInner pat@Pattern {pNegated = True} splitPath =
