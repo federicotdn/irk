@@ -76,7 +76,8 @@ findSymbolDefinition symbol =
         -- Use 'try' here to avoid consuming initial tokens in case we don't match.
         try $ findClassDef symbol,
         findClassConstrainedDef symbol,
-        findModuleDef symbol
+        findModuleDef symbol,
+        findCPPMacroDef symbol
       ]
 
 findDef :: Text -> Parser SourcePos
@@ -120,6 +121,15 @@ findClassConstrainedDef name = do
 findModuleDef :: Text -> Parser SourcePos
 findModuleDef name = do
   _ <- string "module"
+  _ <- hspace1
+  pos <- getSourcePos
+  _ <- string name
+  _ <- hspace1 <|> void (char '(')
+  return pos
+
+findCPPMacroDef :: Text -> Parser SourcePos
+findCPPMacroDef name = do
+  _ <- string "#define"
   _ <- hspace1
   pos <- getSourcePos
   _ <- string name

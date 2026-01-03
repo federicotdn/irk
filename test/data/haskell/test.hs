@@ -1,4 +1,5 @@
-module Ident6 where -- Note that this file gets formatted with ormolu too (make fmt).
+{- ORMOLU_DISABLE -}
+module Ident6 where
 
 ident1 :: Int
 ident1 = 42
@@ -14,3 +15,7 @@ class Ident5 a where
 
 class (Ident7 b) => Ident8 b where
   function :: b -> Int
+
+-- Macros defined with CPP extension
+#define IDENT9(foo) foo * 2
+#define IDENT10 x
