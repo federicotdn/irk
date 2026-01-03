@@ -43,6 +43,7 @@ ignoreForVendor =
       ( T.unlines
           [ "/*/",
             "!/vendor/",
+            "internal/",
             "!*.go",
             "/*.go"
           ]
