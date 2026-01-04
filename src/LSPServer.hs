@@ -187,9 +187,9 @@ handleInitialize rid mparams = do
 
       let clientCapabilities = jsonGetOr params "capabilities" $ object []
       let generalCapabilities = jsonGetOr clientCapabilities "general" $ object []
-      let positionEncodings = case jsonGetOr generalCapabilities "positionEncodings" [UTF16] of
-            [] -> [UTF16]
-            xs -> xs
+      let posEncoding = case jsonGetOr generalCapabilities "positionEncodings" [UTF16] of
+            [] -> UTF16
+            (enc : _) -> enc
 
       if null workspacesList
         then
@@ -199,7 +199,7 @@ handleInitialize rid mparams = do
           put $
             srv
               { workspaces = workspacesList,
-                positionEncoding = head positionEncodings,
+                positionEncoding = posEncoding,
                 initializeDone = True
               }
           returnResponse
@@ -208,7 +208,7 @@ handleInitialize rid mparams = do
                 [ "capabilities"
                     .= object
                       [ "definitionProvider" .= True,
-                        "positionEncoding" .= head positionEncodings,
+                        "positionEncoding" .= posEncoding,
                         "textDocumentSync"
                           .= object
                             [ "openClose" .= False,

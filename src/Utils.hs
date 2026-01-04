@@ -83,7 +83,7 @@ fileText f = do
 extractLine :: Text -> Int -> Int -> Maybe (Text, Text)
 extractLine source line col = case drop line (T.lines source) of
   [] -> Nothing
-  ls -> Just $ T.splitAt col (head ls)
+  (contents : _) -> Just $ T.splitAt col contents
 
 longestPrefix :: OsString -> [OsString] -> Maybe OsPath
 longestPrefix path prefixes =

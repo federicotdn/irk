@@ -104,7 +104,7 @@ patternIgnoresInner pat@Pattern {pSegments = segs} splitPath =
             let matches = mapMaybe (patternIgnoresInner (pat {pSegments = rest})) (init $ tails splitPath)
              in if null matches then Nothing else Just (or matches)
       (seg : rest) ->
-        let tailPath = tail splitPath
+        let tailPath = drop 1 splitPath
             match = segmentMatches seg (head splitPath)
             continued = patternIgnoresInner (pat {pSegments = rest}) tailPath
             retry = if null tailPath then Nothing else patternIgnoresInner pat tailPath

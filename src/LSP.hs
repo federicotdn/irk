@@ -62,8 +62,11 @@ headerContentLength = "Content-Length"
 headerContentType :: String
 headerContentType = "Content-Type"
 
+defaultContentType :: String
+defaultContentType = "utf-8"
+
 validContentTypes :: [String]
-validContentTypes = ["utf-8", "utf8"]
+validContentTypes = [defaultContentType, "utf8"]
 
 urlEncode :: String -> String
 urlEncode "" = ""
@@ -376,7 +379,7 @@ getContentLength hs = case getHeader hs headerContentLength of
 
 getContentType :: [Header] -> String
 getContentType hs = case getHeader hs headerContentType of
-  Nothing -> head validContentTypes
+  Nothing -> defaultContentType
   Just (Header _ value) -> value
 
 validateMessage :: Message -> Either LSPError Message
