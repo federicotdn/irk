@@ -47,7 +47,7 @@ import Data.Char (chr, digitToInt, isHexDigit, isSpace, toLower)
 import Data.List (dropWhileEnd, find, stripPrefix)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import GHC.Generics
+import GHC.Generics (Generic)
 import System.OsPath (OsPath, normalise, pathSeparator)
 import qualified System.OsString as OS
 import Text.Read (readMaybe)
