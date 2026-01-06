@@ -32,7 +32,9 @@ ignore =
   baseIgnore
     <> parse
       ( T.unlines
-          [ "/vendor/",
+          [ "_build/",
+            "dist-newstyle/",
+            "/vendor/",
             "!*.hs",
             "!*.hsc"
           ]
