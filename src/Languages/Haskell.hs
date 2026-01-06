@@ -103,6 +103,7 @@ findClassDef name = do
   _ <- hspace1
   pos <- getSourcePos
   _ <- string name
+  _ <- hspace1
   _ <- takeWhile1P Nothing (`notElem` ['\n', '='])
   notFollowedBy $ string "=>"
   return pos
@@ -116,6 +117,7 @@ findClassConstrainedDef name = do
   _ <- hspace
   pos <- getSourcePos
   _ <- string name
+  _ <- hspace1
   return pos
 
 findModuleDef :: Text -> Parser SourcePos

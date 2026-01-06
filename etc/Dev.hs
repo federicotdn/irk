@@ -42,6 +42,11 @@ repos =
         RepoInfo
           "https://github.com/federicotdn/wikiquote.git"
           "2ded998e4f7c5f08e0c66bd34c747a6842a2aedb"
+      ),
+      ( "ghc",
+        RepoInfo
+          "https://github.com/ghc/ghc.git"
+          "3d6aba778f7628deef0141d9e8effc546c09bac4"
       )
     ]
 
@@ -53,7 +58,8 @@ benchmarks =
       ("k8s-vendor", Scenario "k8s" "go" "IgnoreTopFunction"),
       ("k8s-notfound", Scenario "k8s" "go" "ThisSymbolDoesNotExist"),
       ("wq", Scenario "wikiquote" "python" "quote_of_the_day"),
-      ("linux", Scenario "linux" "c" "io_madvise")
+      ("linux", Scenario "linux" "c" "io_madvise"),
+      ("ghc", Scenario "ghc" "haskell" "pprWithSourceText")
     ]
 
 data Command = Install | Vendor | Benchmark String Bool Bool

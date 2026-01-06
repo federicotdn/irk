@@ -14,7 +14,7 @@ import Control.Concurrent.STM.TQueue (flushTQueue, newTQueueIO, tryReadTQueue, w
 import Control.Concurrent.STM.TVar (modifyTVar', newTVarIO, readTVar)
 import Control.Monad (forM, guard, unless, when)
 import Data.List (partition)
-import Data.Maybe (isNothing)
+import Data.Maybe (catMaybes, isNothing)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
@@ -31,7 +31,7 @@ import Text.Megaparsec (Parsec, atEnd, optional, parse, takeWhileP, try)
 import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Pos (SourcePos, sourceColumn, sourceLine, unPos)
 import Types (IrkFile (..), IrkFilePos (..), file)
-import Utils (extractLine, sep)
+import Utils (extractLine, sep, tryIO)
 
 type Parser = Parsec Void Text
 
@@ -85,20 +85,24 @@ recurseDirectory ign dir = do
             entries <- listDirectory $ iPath next
             entries' <- forM entries $ \e -> do
               let path = iPath next `fastJoinPaths` e
-              metadata <- getFileMetadata path
-              let isDir = fileTypeFromMetadata metadata `elem` [Directory, DirectoryLink]
-              let fileSize = if isDir then Nothing else Just $ fileSizeFromMetadata metadata
-              return
-                IrkFile
-                  { iPath = path,
-                    iRelPathParts = iRelPathParts next ++ [e],
-                    iDir = isDir,
-                    iFileSize = fileSize,
-                    iDepth = depth',
-                    iArea = iArea next
-                  }
+              mmetadata <- tryIO $ getFileMetadata path
+              case mmetadata of
+                Just metadata -> do
+                  let isDir = fileTypeFromMetadata metadata `elem` [Directory, DirectoryLink]
+                  let fileSize = if isDir then Nothing else Just $ fileSizeFromMetadata metadata
+                  pure $
+                    Just
+                      IrkFile
+                        { iPath = path,
+                          iRelPathParts = iRelPathParts next ++ [e],
+                          iDir = isDir,
+                          iFileSize = fileSize,
+                          iDepth = depth',
+                          iArea = iArea next
+                        }
+                Nothing -> pure Nothing
 
-            let (p1, p2) = partition iDir entries'
+            let (p1, p2) = partition iDir (catMaybes entries')
             let directories = filter (not . irkFileIgnored ign) p1
             let files = filter (not . irkFileIgnored ign) p2
 

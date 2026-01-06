@@ -4,7 +4,7 @@ build:
 	cabal build -j
 
 lint:
-	hlint src test app etc
+	hlint src test app etc/Dev.hs
 
 test:
 	cabal test -j --enable-tests
