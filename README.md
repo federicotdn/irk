@@ -3,8 +3,10 @@
 A tool for finding symbols in codebases, with support for many programming languages*.
 
 irk can be used as a:
-- CLI tool: like using [ripgrep](https://github.com/BurntSushi/ripgrep/) to search for symbols, with a bit more help.
-- LSP server: think [ctags](https://en.wikipedia.org/wiki/Ctags) but without the tags.
+- CLI tool: like using [ripgrep](https://github.com/BurntSushi/ripgrep/) to search for symbols, with a bit more code structure awareness.
+- LSP server: think [ctags](https://en.wikipedia.org/wiki/Ctags) but without the tags, and queried via LSP.
+
+_*see the [Supported Languages](#supported-languages) section below._
 
 ## Features
 
