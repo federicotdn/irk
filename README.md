@@ -55,9 +55,12 @@ irk takes a lot of tricks from ripgrep, and other general ideas, in order to max
 - The remaining files are read using simple read operations, or `mmap`'ed into memory, depending on their size.
 - An [algorithm using SIMD/AVX2](http://0x80.pl/notesen/2016-11-28-simd-strfind.html) is used to quickly detect if the symbol occurs _anywhere_ in the target file's contents.
 - When a positive match for the above is found, the file's contents are quickly parsed using [megaparsec](https://hackage.haskell.org/package/megaparsec) to check if the symbol appears (for example) as a definition/declaration.
+- The three above steps are also executed in parallel via a work stealing scheme.
 - In LSP mode, the first file to be searched is the one where the definition/declaration query came from. This makes some queries essentially instant.
 - Otherwise, first only project files are searched. Afterwards, vendored files are searched. This means that the search radius is initially smaller, and then gets larger (as usually the number of lines of _vendored_ code exceed the number of _project_ lines of code for average-sized projects).
 - _Not implemented yet_: searching for _external_ files, e.g. system-level Python/C/etc. installed libraries (assuming source code is available).
+
+I've tested irk on the Linux and Kubernetes codebases in order to quickly find performance bottlenecks.
 
 ## Supported Languages
 
