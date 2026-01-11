@@ -27,6 +27,8 @@ common shared-deps
                     , vector ^>=0.13.2
                     , bytestring ^>=0.12.2
                     , stm ^>=2.5.3
+                    -- Own libs:
+                    , gitignore-ospath ^>=0.1.0
                     -- Third party:
                     , megaparsec ^>=9.7.0
                     , async ^>=2.2.5
@@ -61,7 +63,6 @@ library
                     , Infix
                     , Types
                     , Transport
-                    , Ignore
 
 executable irk
     import:           warnings
@@ -96,5 +97,4 @@ test-suite test-irk
                     , LanguageSpec
                     , UtilsSpec
                     , InfixSpec
-                    , IgnoreSpec
                     , Testing
