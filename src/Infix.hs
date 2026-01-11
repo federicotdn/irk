@@ -16,7 +16,7 @@ import System.IO.Unsafe (unsafePerformIO)
 foreign import capi "infix.h has_avx2" has_avx2 :: CBool
 
 foreign import capi "infix.h is_infix_of"
-  c_is_infix_of :: Ptr CUChar -> CLLong -> Ptr CUChar -> CLLong -> IO CBool
+  c_is_infix_of :: Ptr CUChar -> CLLong -> Ptr CUChar -> CLLong -> IO CLLong
 
 cpuHasAVX2 :: Bool
 cpuHasAVX2 = has_avx2 /= 0
@@ -30,7 +30,7 @@ isInfixOfC needle haystack = do
     then unsafePerformIO $
       BSU.unsafeUseAsCStringLen needle $ \(needlePtr, needleLen) ->
         BSU.unsafeUseAsCStringLen haystack $ \(haystackPtr, haystackLen) ->
-          (/= 0)
+          (>= 0)
             <$> c_is_infix_of
               (castPtr needlePtr)
               (fromIntegral needleLen)

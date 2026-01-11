@@ -26,60 +26,53 @@
 
 bool has_avx2() { return true; }
 
-bool is_infix_of(const uint8_t *needle, int64_t needle_len,
-                 const uint8_t *haystack, int64_t haystack_len) {
-  if (needle_len == 0) return true;
-  if (needle_len > haystack_len) return false;
-
-  int64_t limit = haystack_len - needle_len;
-
-  // Skip AVX if haystack is too short
-  if (limit < 32) {
-    for (int64_t i = 0; i <= limit; i++) {
-      if (memcmp(haystack + i, needle, needle_len) == 0) {
-        return true;
-      }
-    }
-    return false;
+// Based on:
+// http://0x80.pl/notesen/2016-11-28-simd-strfind.html#algorithm-1-generic-simd
+int64_t is_infix_of(const char *needle, const int64_t needle_size,
+                    const char *haystack, const int64_t haystack_size) {
+  if (needle_size == 0) {
+    return 0;
+  } else if (needle_size > haystack_size) {
+    return -1;
   }
 
-  // Broadcast first and last bytes of needle
-  __m256i first = _mm256_set1_epi8(needle[0]);
-  __m256i last = _mm256_set1_epi8(needle[needle_len - 1]);
+  const __m256i first = _mm256_set1_epi8(needle[0]);
+  const __m256i last = _mm256_set1_epi8(needle[needle_size - 1]);
 
-  int64_t i = 0;
-  int64_t simd_limit = limit - 31;  // need 32 bytes for AVX2 load
+  const size_t simd_limit =
+      haystack_size >= needle_size + 31 ? haystack_size - needle_size - 31 : 0;
+  size_t i = 0;
 
-  for (; i <= simd_limit; i += 32) {
-    // Load 32 bytes at position i and at position i + needle_len - 1
-    __m256i block_first = _mm256_loadu_si256((const __m256i *)(haystack + i));
-    __m256i block_last = _mm256_loadu_si256((const __m256i *)(haystack + i + needle_len - 1));
+  for (; i < simd_limit; i += 32) {
+    const __m256i block_first =
+        _mm256_loadu_si256((const __m256i *)(haystack + i));
+    const __m256i block_last =
+        _mm256_loadu_si256((const __m256i *)(haystack + i + needle_size - 1));
 
-    // Compare against first/last byte of needle
-    __m256i eq_first = _mm256_cmpeq_epi8(first, block_first);
-    __m256i eq_last = _mm256_cmpeq_epi8(last, block_last);
+    const __m256i eq_first = _mm256_cmpeq_epi8(first, block_first);
+    const __m256i eq_last = _mm256_cmpeq_epi8(last, block_last);
 
-    // Positions where both first AND last byte match
     uint32_t mask = _mm256_movemask_epi8(_mm256_and_si256(eq_first, eq_last));
 
-    // Check each candidate position
-    while (mask) {
-      int bitpos = __builtin_ctz(mask);
-      if (memcmp(haystack + i + bitpos, needle, needle_len) == 0) {
-        return true;
+    while (mask != 0) {
+      const int bitpos = __builtin_ctz(mask);
+
+      if (memcmp(haystack + i + bitpos + 1, needle + 1, needle_size - 2) == 0) {
+        return i + bitpos;
       }
-      mask &= mask - 1;  // Clear lowest set bit
+
+      // Clear lowest set bit
+      mask &= mask - 1;
     }
   }
 
-  // Do the rest (if any) using memcmp
-  for (; i <= limit; i++) {
-    if (memcmp(haystack + i, needle, needle_len) == 0) {
-      return true;
+  for (; i <= haystack_size - needle_size; i++) {
+    if (memcmp(haystack + i, needle, needle_size) == 0) {
+      return i;
     }
   }
 
-  return false;
+  return -1;
 }
 
 #else

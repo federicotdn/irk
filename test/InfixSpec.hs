@@ -26,6 +26,7 @@ spec = do
       (encodeUtf8 "" `isInfixOfC` encoded) `shouldBe` True
       (encodeUtf8 "foobar" `isInfixOfC` encoded) `shouldBe` False
       (encodeUtf8 "random" `isInfixOfC` encoded) `shouldBe` True
+      (encodeUtf8 "randxm" `isInfixOfC` encoded) `shouldBe` False
       (encodeUtf8 "ds." `isInfixOfC` encoded) `shouldBe` True
       (encodeUtf8 "#Th" `isInfixOfC` encoded) `shouldBe` True
       (encoded `isInfixOfC` encoded) `shouldBe` True
