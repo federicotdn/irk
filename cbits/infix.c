@@ -80,9 +80,9 @@ int64_t is_infix_of(const char *needle, const int64_t needle_size,
 
 bool has_avx2() { return false; }
 
-bool is_infix_of(const uint8_t *needle, int64_t needle_len,
-                 const uint8_t *haystack, int64_t haystack_len) {
-  return false;
+int64_t is_infix_of(const char *needle, const int64_t needle_size,
+                    const char *haystack, const int64_t haystack_size) {
+  return -1;
 }
 
 #endif
