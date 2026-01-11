@@ -13,7 +13,7 @@ _*see the [Supported Languages](#supported-languages) section below._
 
 ## Features
 
-- Distributed as a single, static binary.
+- _Will be_ distributed as a single, static binary.
 - Search for symbols in codebases without needing to run or set up any project-specific build tools.
 - Optionally, search for symbols in 3rd party code, such as `vendor/` for Go, or `.venv` for Python.
 
