@@ -13,6 +13,7 @@ import Data.Text (Text)
 import qualified Languages.C as LangC
 import qualified Languages.Go as LangGo
 import qualified Languages.Haskell as LangHs
+import qualified Languages.JavaScript as LangJs
 import qualified Languages.Python as LangPy
 import System.OsPath (OsPath, OsString, takeExtension)
 import Types (IrkFile, IrkFilePos)
@@ -62,6 +63,15 @@ languages =
             lSearchPath = LangC.searchPath,
             lSymbolAtPosition = LangC.symbolAtPosition,
             lFindSymbolDefinition = LangC.findSymbolDefinition
+          }
+      ),
+      ( "js",
+        Language
+          { lName = "JavaScript",
+            lExtensions = LangJs.extensions,
+            lSearchPath = LangJs.searchPath,
+            lSymbolAtPosition = LangJs.symbolAtPosition,
+            lFindSymbolDefinition = LangJs.findSymbolDefinition
           }
       )
     ]

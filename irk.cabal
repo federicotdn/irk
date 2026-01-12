@@ -59,6 +59,7 @@ library
                     , Languages.Python
                     , Languages.Go
                     , Languages.C
+                    , Languages.JavaScript
                     , Utils
                     , Infix
                     , Types
