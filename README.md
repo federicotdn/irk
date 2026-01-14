@@ -69,4 +69,6 @@ irk currently supports the following programming languages:
 - C (`.c`, `.h`)
 - Go (`.go`)
 - Haskell (`.hs`, `.hsc`)
-- Python (`.py`)
+- JavaScript (`.js`, `.mjs`, `.cjs`)
+- Python (`.py`, `.pyi`)
+- Ruby (`.rb`)
