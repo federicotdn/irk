@@ -1,4 +1,4 @@
-module Languages.Python
+module Languages.Ruby
   ( extensions,
     searchPath,
     symbolAtPosition,
@@ -18,32 +18,21 @@ import Languages.Common
     symbolAtPos,
   )
 import System.OsPath (OsString)
-import Text.Megaparsec
-  ( SourcePos,
-    choice,
-    getSourcePos,
-    optional,
-    takeWhile1P,
-    takeWhileP,
-    try,
-  )
-import Text.Megaparsec.Char (char, hspace, hspace1, string)
+import Text.Megaparsec (SourcePos, choice, getSourcePos, try, (<|>))
+import Text.Megaparsec.Char (hspace1, string, char, space1, hspace)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (oss)
 
 extensions :: [OsString]
-extensions = oss [".py", ".pyi"]
+extensions = oss [".rb"]
 
 ignore :: Ignore
 ignore =
   baseIgnore
     <> parse
       ( T.unlines
-          [ "__pycache__",
-            "/venv/",
-            "/env/",
-            "!*.py",
-            "!*.pyi"
+          [ "/vendor/",
+            "!*.rb"
           ]
       )
 
@@ -52,16 +41,10 @@ ignoreForVendor =
   baseIgnore
     <> parse
       ( T.unlines
-          [ "__pycache__",
-            "/*/",
-            "!/.venv/",
-            "!/.env/",
-            "!/venv/",
-            "!/env/",
-            "lib64/",
-            "!*.py",
-            "!*.pyi",
-            "/*.py"
+          [ "/*/",
+            "!/vendor/",
+            "!*.rb",
+            "/*.rb"
           ]
       )
 
@@ -78,27 +61,22 @@ symbolAtPosition = symbolAtPos isIdentifierChar isIdentifier
 isIdentifierChar :: Char -> Bool
 isIdentifierChar ch = isAlphaNum ch || ch == '_'
 
--- | Validate an identifier, with the assumption that all characters follow 'isIdentifierChar'.
 isIdentifier :: Text -> Bool
 isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 
 findSymbolDefinition :: Text -> Text -> [IrkFilePos]
 findSymbolDefinition symbol =
   searchForMatch $
-    choice
-      [ findTopLevelAssignment symbol,
-        -- Use 'try' here to avoid consuming initial whitespace in case we don't match.
-        try (findFuncDef symbol),
-        findClassDef symbol
-      ]
+  choice [try (findMethodDef symbol), try (findClassDef symbol), findModuleDef symbol]
 
-findTopLevelAssignment :: Text -> Parser SourcePos
-findTopLevelAssignment name = do
+findMethodDef :: Text -> Parser SourcePos
+findMethodDef name = do
+  _ <- hspace
+  _ <- string "def"
+  _ <- hspace1
   pos <- getSourcePos
   _ <- string name
-  _ <- hspace
-  _ <- char '='
-  _ <- hspace
+  _ <- char '(' <|> char '\n'
   return pos
 
 findClassDef :: Text -> Parser SourcePos
@@ -108,25 +86,15 @@ findClassDef name = do
   _ <- hspace1
   pos <- getSourcePos
   _ <- string name
-  _ <- hspace
-  _ <- optional $ do
-    _ <- char '('
-    _ <- takeWhileP Nothing (/= ')')
-    _ <- char ')'
-    _ <- hspace
-    pure ()
-  _ <- char ':'
+  _ <- space1
   return pos
 
-findFuncDef :: Text -> Parser SourcePos
-findFuncDef name = do
+findModuleDef :: Text -> Parser SourcePos
+findModuleDef name = do
   _ <- hspace
-  _ <- string "def"
+  _ <- string "module"
   _ <- hspace1
   pos <- getSourcePos
   _ <- string name
-  _ <- hspace
-  _ <- char '('
-  _ <- takeWhile1P Nothing (/= ':')
-  _ <- char ':'
+  _ <- space1
   return pos

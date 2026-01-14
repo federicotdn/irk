@@ -15,6 +15,7 @@ import qualified Languages.Go as LangGo
 import qualified Languages.Haskell as LangHs
 import qualified Languages.JavaScript as LangJs
 import qualified Languages.Python as LangPy
+import qualified Languages.Ruby as LangRb
 import System.OsPath (OsPath, OsString, takeExtension)
 import Types (IrkFile, IrkFilePos)
 
@@ -72,6 +73,15 @@ languages =
             lSearchPath = LangJs.searchPath,
             lSymbolAtPosition = LangJs.symbolAtPosition,
             lFindSymbolDefinition = LangJs.findSymbolDefinition
+          }
+      ),
+      ( "ruby",
+        Language
+          { lName = "Ruby",
+            lExtensions = LangRb.extensions,
+            lSearchPath = LangRb.searchPath,
+            lSymbolAtPosition = LangRb.symbolAtPosition,
+            lFindSymbolDefinition = LangRb.findSymbolDefinition
           }
       )
     ]

@@ -20,7 +20,7 @@ import Languages.Common
   )
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, choice, getSourcePos, optional, takeWhile1P, takeWhileP, (<|>))
-import Text.Megaparsec.Char (char, hspace1, space, space1, string)
+import Text.Megaparsec.Char (char, hspace, hspace1, space, space1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (oss)
 
@@ -69,7 +69,7 @@ findMacroDef name = do
 
 findFuncDef :: Text -> Parser SourcePos
 findFuncDef name = do
-  _ <- takeWhileP Nothing (\c -> c == ' ' || c == '\t')
+  _ <- hspace
   _ <- optional $ do
     _ <- string "static"
     _ <- space1

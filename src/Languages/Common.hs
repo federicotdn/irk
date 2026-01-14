@@ -14,7 +14,7 @@ import Control.Concurrent.STM.TQueue (flushTQueue, newTQueueIO, tryReadTQueue, w
 import Control.Concurrent.STM.TVar (modifyTVar', newTVarIO, readTVar)
 import Control.Monad (forM, guard, unless, when)
 import Data.List (partition)
-import Data.Maybe (catMaybes, isNothing)
+import Data.Maybe (catMaybes, fromMaybe, isNothing)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
@@ -82,8 +82,8 @@ recurseDirectory ign dir = do
           Nothing -> pure ()
           Just next -> do
             let depth' = iDepth next + 1
-            entries <- listDirectory $ iPath next
-            entries' <- forM entries $ \e -> do
+            mentries <- tryIO $ listDirectory $ iPath next
+            entries' <- forM (fromMaybe [] mentries) $ \e -> do
               let path = iPath next `fastJoinPaths` e
               mmetadata <- tryIO $ getFileMetadata path
               case mmetadata of

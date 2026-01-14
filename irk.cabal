@@ -60,6 +60,7 @@ library
                     , Languages.Go
                     , Languages.C
                     , Languages.JavaScript
+                    , Languages.Ruby
                     , Utils
                     , Infix
                     , Types

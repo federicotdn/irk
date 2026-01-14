@@ -23,7 +23,6 @@ import Text.Megaparsec
     choice,
     getSourcePos,
     optional,
-    takeWhileP,
     (<|>),
   )
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
@@ -95,7 +94,7 @@ findSymbolDefinition symbol =
 -- | Match: function name(...) {
 findFuncDef :: Text -> Parser SourcePos
 findFuncDef name = do
-  _ <- takeWhileP Nothing (\c -> c == ' ' || c == '\t')
+  _ <- hspace
   _ <- optional $ do
     _ <- string "export"
     _ <- hspace1
@@ -117,7 +116,7 @@ findFuncDef name = do
 -- | Match: class Name
 findClassDef :: Text -> Parser SourcePos
 findClassDef name = do
-  _ <- takeWhileP Nothing (\c -> c == ' ' || c == '\t')
+  _ <- hspace
   _ <- optional $ do
     _ <- string "export"
     _ <- hspace1

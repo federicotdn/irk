@@ -47,6 +47,11 @@ repos =
         RepoInfo
           "https://github.com/ghc/ghc.git"
           "3d6aba778f7628deef0141d9e8effc546c09bac4"
+      ),
+      ( "rails",
+        RepoInfo
+          "https://github.com/rails/rails.git"
+          "01fb87c25e541ea889263400012bb85e822496f5"
       )
     ]
 
@@ -59,7 +64,8 @@ benchmarks =
       ("k8s-notfound", Scenario "k8s" "go" "ThisSymbolDoesNotExist"),
       ("wq", Scenario "wikiquote" "python" "quote_of_the_day"),
       ("linux", Scenario "linux" "c" "io_madvise"),
-      ("ghc", Scenario "ghc" "haskell" "pprWithSourceText")
+      ("ghc", Scenario "ghc" "haskell" "pprWithSourceText"),
+      ("rails", Scenario "rails" "ruby" "each_connection_pool")
     ]
 
 data Command = Install | Vendor | Benchmark String Bool Bool
