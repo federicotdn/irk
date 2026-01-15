@@ -24,4 +24,4 @@ class Ident5b a where
   method :: a -> Int
 
 class Ident5 a => Ident8b a where
-  function :: a -> Int
+  ident11 :: a -> Int

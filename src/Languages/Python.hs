@@ -16,18 +16,21 @@ import Languages.Common
     recurseDirectory,
     searchForMatch,
     symbolAtPos,
+    vchar,
+    vhspace,
+    vhspace1,
+    voptional,
+    vskipWhile,
+    vskipWhile1,
+    vstring,
   )
 import System.OsPath (OsString)
 import Text.Megaparsec
   ( SourcePos,
     choice,
     getSourcePos,
-    optional,
-    takeWhile1P,
-    takeWhileP,
     try,
   )
-import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (oss)
 
@@ -95,38 +98,37 @@ findSymbolDefinition symbol =
 findTopLevelAssignment :: Text -> Parser SourcePos
 findTopLevelAssignment name = do
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace
-  _ <- char '='
-  _ <- hspace
+  vstring name
+  vhspace
+  vchar '='
+  vhspace
   return pos
 
 findClassDef :: Text -> Parser SourcePos
 findClassDef name = do
-  _ <- hspace
-  _ <- string "class"
-  _ <- hspace1
+  vhspace
+  vstring "class"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace
-  _ <- optional $ do
-    _ <- char '('
-    _ <- takeWhileP Nothing (/= ')')
-    _ <- char ')'
-    _ <- hspace
-    pure ()
-  _ <- char ':'
+  vstring name
+  vhspace
+  voptional $ do
+    vchar '('
+    vskipWhile (/= ')')
+    vchar ')'
+    vhspace
+  vchar ':'
   return pos
 
 findFuncDef :: Text -> Parser SourcePos
 findFuncDef name = do
-  _ <- hspace
-  _ <- string "def"
-  _ <- hspace1
+  vhspace
+  vstring "def"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace
-  _ <- char '('
-  _ <- takeWhile1P Nothing (/= ':')
-  _ <- char ':'
+  vstring name
+  vhspace
+  vchar '('
+  vskipWhile1 (/= ':')
+  vchar ':'
   return pos

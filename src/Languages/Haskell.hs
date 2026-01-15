@@ -6,7 +6,6 @@ module Languages.Haskell
   )
 where
 
-import Control.Monad (void)
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -17,10 +16,14 @@ import Languages.Common
     recurseDirectory,
     searchForMatch,
     symbolAtPos,
+    vchar,
+    vhspace,
+    vhspace1,
+    vskipWhile1,
+    vstring,
   )
 import System.OsPath (OsString)
-import Text.Megaparsec (SourcePos, choice, getSourcePos, notFollowedBy, takeWhile1P, try, (<|>))
-import Text.Megaparsec.Char (char, hspace, hspace1, string)
+import Text.Megaparsec (SourcePos, choice, getSourcePos, notFollowedBy, try, (<|>))
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (oss)
 
@@ -73,9 +76,8 @@ findSymbolDefinition :: Text -> Text -> [IrkFilePos]
 findSymbolDefinition symbol =
   searchForMatch $
     choice
-      [ findDef symbol,
-        findTypeDef symbol,
-        -- Use 'try' here to avoid consuming initial tokens in case we don't match.
+      [ findTypeDef symbol,
+        findDef symbol,
         try $ findClassDef symbol,
         findClassConstrainedDef symbol,
         findModuleDef symbol,
@@ -84,58 +86,59 @@ findSymbolDefinition symbol =
 
 findDef :: Text -> Parser SourcePos
 findDef name = do
+  vhspace
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace
-  _ <- string "::"
+  vstring name
+  vhspace
+  vstring "::"
   return pos
 
 findTypeDef :: Text -> Parser SourcePos
 findTypeDef name = do
-  _ <- string "data" <|> string "newtype" <|> string "type"
-  _ <- hspace1
+  vstring "data" <|> vstring "newtype" <|> vstring "type"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace1 <|> void (char '=')
+  vstring name
+  vhspace1 <|> vchar '='
   return pos
 
 findClassDef :: Text -> Parser SourcePos
 findClassDef name = do
-  _ <- string "class"
-  _ <- hspace1
+  vstring "class"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace1
-  _ <- takeWhile1P Nothing (`notElem` ['\n', '='])
-  notFollowedBy $ string "=>"
+  vstring name
+  vhspace1
+  vskipWhile1 (`notElem` ['\n', '='])
+  notFollowedBy $ vstring "=>"
   return pos
 
 findClassConstrainedDef :: Text -> Parser SourcePos
 findClassConstrainedDef name = do
-  _ <- string "class"
-  _ <- hspace1
-  _ <- takeWhile1P Nothing (`notElem` ['\n', '='])
-  _ <- string "=>"
-  _ <- hspace
+  vstring "class"
+  vhspace1
+  vskipWhile1 (`notElem` ['\n', '='])
+  vstring "=>"
+  vhspace
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace1
+  vstring name
+  vhspace1
   return pos
 
 findModuleDef :: Text -> Parser SourcePos
 findModuleDef name = do
-  _ <- string "module"
-  _ <- hspace1
+  vstring "module"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace1 <|> void (char '(')
+  vstring name
+  vhspace1 <|> vchar '('
   return pos
 
 findCPPMacroDef :: Text -> Parser SourcePos
 findCPPMacroDef name = do
-  _ <- string "#define"
-  _ <- hspace1
+  vstring "#define"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace1 <|> void (char '(')
+  vstring name
+  vhspace1 <|> vchar '('
   return pos

@@ -4,15 +4,26 @@ module Languages.Common
     searchForMatch,
     symbolAtPos,
     baseIgnore,
+    vchar,
+    vstring,
+    vspace,
+    vspace1,
+    vhspace,
+    vhspace1,
+    vskipWhile,
+    vskipWhile1,
+    voptional,
+    vsatisfy,
   )
 where
 
+import Control.Applicative ((<|>))
 import Control.Concurrent (getNumCapabilities)
 import Control.Concurrent.Async (replicateConcurrently_)
 import Control.Concurrent.STM (atomically, retry)
 import Control.Concurrent.STM.TQueue (flushTQueue, newTQueueIO, tryReadTQueue, writeTQueue)
 import Control.Concurrent.STM.TVar (modifyTVar', newTVarIO, readTVar)
-import Control.Monad (forM, guard, unless, when)
+import Control.Monad (MonadPlus, forM, guard, unless, void, when)
 import Data.List (partition)
 import Data.Maybe (catMaybes, fromMaybe, isNothing)
 import Data.Text (Text)
@@ -27,9 +38,31 @@ import System.Directory.Internal
     getFileMetadata,
   )
 import System.Directory.OsPath (listDirectory)
-import Text.Megaparsec (Parsec, atEnd, optional, parse, takeWhileP, try)
-import Text.Megaparsec.Char (newline)
-import Text.Megaparsec.Pos (SourcePos, sourceColumn, sourceLine, unPos)
+import Text.Megaparsec
+  ( Parsec,
+    atEnd,
+    optional,
+    parse,
+    satisfy,
+    takeWhile1P,
+    takeWhileP,
+    try,
+  )
+import Text.Megaparsec.Char
+  ( char,
+    hspace,
+    hspace1,
+    newline,
+    space,
+    space1,
+    string,
+  )
+import Text.Megaparsec.Pos
+  ( SourcePos,
+    sourceColumn,
+    sourceLine,
+    unPos,
+  )
 import Types (IrkFile (..), IrkFilePos (..), file)
 import Utils (extractLine, sep, tryIO)
 
@@ -174,3 +207,33 @@ symbolAtPos isIdentifierChar isIdentifier source (IrkFilePos _ line col) = case 
   where
     parts = extractLine source line col
 {-# INLINE symbolAtPos #-}
+
+vhspace :: Parser ()
+vhspace = void hspace
+
+vhspace1 :: Parser ()
+vhspace1 = void hspace1
+
+vspace :: Parser ()
+vspace = void space
+
+vspace1 :: Parser ()
+vspace1 = void space1
+
+vstring :: Text -> Parser ()
+vstring s = void (string s)
+
+vchar :: Char -> Parser ()
+vchar c = void (char c)
+
+vskipWhile :: (Char -> Bool) -> Parser ()
+vskipWhile p = void (takeWhileP Nothing p)
+
+vskipWhile1 :: (Char -> Bool) -> Parser ()
+vskipWhile1 p = void (takeWhile1P Nothing p)
+
+voptional :: (MonadPlus f) => f a -> f ()
+voptional f = void f <|> pure ()
+
+vsatisfy :: (Char -> Bool) -> Parser ()
+vsatisfy p = void (satisfy p)

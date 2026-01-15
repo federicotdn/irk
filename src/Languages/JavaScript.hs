@@ -16,16 +16,19 @@ import Languages.Common
     recurseDirectory,
     searchForMatch,
     symbolAtPos,
+    vchar,
+    vhspace,
+    vhspace1,
+    voptional,
+    vstring,
   )
 import System.OsPath (OsString)
 import Text.Megaparsec
   ( SourcePos,
     choice,
     getSourcePos,
-    optional,
     (<|>),
   )
-import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (oss)
 
@@ -94,41 +97,37 @@ findSymbolDefinition symbol =
 -- | Match: function name(...) {
 findFuncDef :: Text -> Parser SourcePos
 findFuncDef name = do
-  _ <- hspace
-  _ <- optional $ do
-    _ <- string "export"
-    _ <- hspace1
-    pure ()
-  _ <- optional $ do
-    _ <- string "async"
-    _ <- hspace1
-    pure ()
-  _ <- string "function"
-  _ <- hspace
-  _ <- optional $ char '*' -- generator
-  _ <- hspace
+  vhspace
+  voptional $ do
+    vstring "export"
+    vhspace1
+  voptional $ do
+    vstring "async"
+    vhspace1
+  vstring "function"
+  vhspace
+  voptional $ vchar '*' -- generator
+  vhspace
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace
-  _ <- char '('
+  vstring name
+  vhspace
+  vchar '('
   return pos
 
 -- | Match: class Name
 findClassDef :: Text -> Parser SourcePos
 findClassDef name = do
-  _ <- hspace
-  _ <- optional $ do
-    _ <- string "export"
-    _ <- hspace1
-    pure ()
-  _ <- optional $ do
-    _ <- string "default"
-    _ <- hspace1
-    pure ()
-  _ <- string "class"
-  _ <- hspace1
+  vhspace
+  voptional $ do
+    vstring "export"
+    vhspace1
+  voptional $ do
+    vstring "default"
+    vhspace1
+  vstring "class"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace
-  _ <- char '{' <|> char ' '
+  vstring name
+  vhspace
+  vchar '{' <|> vchar ' '
   return pos

@@ -6,7 +6,6 @@ module Languages.C
   )
 where
 
-import Control.Monad (void)
 import Data.Char (isAlphaNum, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -17,10 +16,18 @@ import Languages.Common
     recurseDirectory,
     searchForMatch,
     symbolAtPos,
+    vchar,
+    vhspace,
+    vhspace1,
+    voptional,
+    vskipWhile,
+    vskipWhile1,
+    vspace,
+    vspace1,
+    vstring,
   )
 import System.OsPath (OsString)
-import Text.Megaparsec (SourcePos, choice, getSourcePos, optional, takeWhile1P, takeWhileP, (<|>))
-import Text.Megaparsec.Char (char, hspace, hspace1, space, space1, string)
+import Text.Megaparsec (SourcePos, choice, getSourcePos, (<|>))
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (oss)
 
@@ -60,28 +67,28 @@ findSymbolDefinition symbol = searchForMatch $ choice [findMacroDef symbol, find
 
 findMacroDef :: Text -> Parser SourcePos
 findMacroDef name = do
-  _ <- string "#define"
-  _ <- hspace1
+  vstring "#define"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- hspace1 <|> void (char '(')
+  vstring name
+  vhspace1 <|> vchar '('
   return pos
 
 findFuncDef :: Text -> Parser SourcePos
 findFuncDef name = do
-  _ <- hspace
-  _ <- optional $ do
-    _ <- string "static"
-    _ <- space1
+  vhspace
+  voptional $ do
+    vstring "static"
+    vspace1
     pure ()
-  _ <- takeWhile1P Nothing isIdentifierChar
-  _ <- space1
+  vskipWhile1 isIdentifierChar
+  vspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- space
-  _ <- char '('
-  _ <- takeWhileP Nothing (/= ')')
-  _ <- char ')'
-  _ <- space
-  _ <- char '{'
+  vstring name
+  vspace
+  vchar '('
+  vskipWhile (/= ')')
+  vchar ')'
+  vspace
+  vchar '{'
   return pos

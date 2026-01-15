@@ -16,10 +16,14 @@ import Languages.Common
     recurseDirectory,
     searchForMatch,
     symbolAtPos,
+    vchar,
+    vhspace,
+    vhspace1,
+    vspace1,
+    vstring,
   )
 import System.OsPath (OsString)
 import Text.Megaparsec (SourcePos, choice, getSourcePos, try, (<|>))
-import Text.Megaparsec.Char (hspace1, string, char, space1, hspace)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (oss)
 
@@ -67,34 +71,34 @@ isIdentifier i = maybe False (not . isDigit . fst) $ T.uncons i
 findSymbolDefinition :: Text -> Text -> [IrkFilePos]
 findSymbolDefinition symbol =
   searchForMatch $
-  choice [try (findMethodDef symbol), try (findClassDef symbol), findModuleDef symbol]
+    choice [try (findMethodDef symbol), try (findClassDef symbol), findModuleDef symbol]
 
 findMethodDef :: Text -> Parser SourcePos
 findMethodDef name = do
-  _ <- hspace
-  _ <- string "def"
-  _ <- hspace1
+  vhspace
+  vstring "def"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- char '(' <|> char '\n'
+  vstring name
+  vchar '(' <|> vchar '\n'
   return pos
 
 findClassDef :: Text -> Parser SourcePos
 findClassDef name = do
-  _ <- hspace
-  _ <- string "class"
-  _ <- hspace1
+  vhspace
+  vstring "class"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- space1
+  vstring name
+  vspace1
   return pos
 
 findModuleDef :: Text -> Parser SourcePos
 findModuleDef name = do
-  _ <- hspace
-  _ <- string "module"
-  _ <- hspace1
+  vhspace
+  vstring "module"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- space1
+  vstring name
+  vspace1
   return pos

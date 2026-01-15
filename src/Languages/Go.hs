@@ -16,10 +16,16 @@ import Languages.Common
     recurseDirectory,
     searchForMatch,
     symbolAtPos,
+    vchar,
+    vhspace,
+    vhspace1,
+    voptional,
+    vsatisfy,
+    vskipWhile1,
+    vstring,
   )
 import System.OsPath (OsString)
-import Text.Megaparsec (SourcePos, choice, getSourcePos, optional, satisfy, takeWhile1P)
-import Text.Megaparsec.Char (char, hspace, hspace1, string)
+import Text.Megaparsec (SourcePos, choice, getSourcePos)
 import Types (IrkFile (..), IrkFileArea (..), IrkFilePos (..))
 import Utils (os)
 
@@ -71,34 +77,32 @@ findSymbolDefinition symbol = searchForMatch $ choice [findFuncDef symbol, findT
 
 findTypeDef :: Text -> Parser SourcePos
 findTypeDef name = do
-  _ <- string "type"
-  _ <- hspace1
+  vstring "type"
+  vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- satisfy (`elem` [' ', '[', '='])
+  vstring name
+  vsatisfy (`elem` [' ', '[', '='])
   return pos
 
 findFuncDef :: Text -> Parser SourcePos
 findFuncDef name = do
   -- There could be spaces before 'func' but this never
   -- happens in practice.
-  _ <- string "func"
-  _ <- hspace1
-  _ <- optional $ do
-    _ <- char '('
-    _ <- takeWhile1P Nothing (/= ')')
-    _ <- char ')'
-    _ <- hspace1
-    pure ()
+  vstring "func"
+  vhspace1
+  voptional $ do
+    vchar '('
+    vskipWhile1 (/= ')')
+    vchar ')'
+    vhspace1
   pos <- getSourcePos
-  _ <- string name
-  _ <- optional $ do
-    _ <- char '['
-    _ <- takeWhile1P Nothing (/= ']')
-    _ <- char ']'
-    pure ()
-  _ <- hspace
-  _ <- char '('
-  _ <- takeWhile1P Nothing (/= '{')
-  _ <- char '{'
+  vstring name
+  voptional $ do
+    vchar '['
+    vskipWhile1 (/= ']')
+    vchar ']'
+  vhspace
+  vchar '('
+  vskipWhile1 (/= '{')
+  vchar '{'
   return pos
