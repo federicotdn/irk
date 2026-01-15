@@ -113,8 +113,8 @@ positionFromUTF32 pos@(Position {pLine = line, pCharacter = col}) encoding sourc
     params UTF16 = Just (TE.encodeUtf16LE, 2)
     params UTF32 = Nothing
 
-locationFromIrkFilePos :: PositionEncoding -> IrkFilePos -> IO Location
-locationFromIrkFilePos encoding (IrkFilePos f line col) = do
+locationLinkFromIrkFilePos :: PositionEncoding -> IrkFilePos -> IO LocationLink
+locationLinkFromIrkFilePos encoding (IrkFilePos f line col) = do
   uri <- uriFromPath (iPath f)
   let utf32Pos = Position {pLine = line, pCharacter = col}
   pos <- case encoding of
@@ -122,7 +122,8 @@ locationFromIrkFilePos encoding (IrkFilePos f line col) = do
     _ -> do
       msource <- fileText f
       return $ positionFromUTF32 utf32Pos encoding $ fromMaybe "" msource
-  return $ Location {lUri = uri, lRange = Range {rStart = pos, rEnd = pos}}
+  let range = Range {rStart = pos, rEnd = pos}
+  return Location {lTargetUri = uri, lTargetRange = range, lTargetSelectionRange = range}
 
 handleTextDocDefinition :: MessageID -> Maybe Value -> Server ()
 handleTextDocDefinition rid mparams = do
@@ -161,7 +162,7 @@ handleTextDocDefinition rid mparams = do
           positions <- lift $ findSymbolDefinition lang symbol searches
 
           -- Convert positions back to the client's preferred encoding, if necessary.
-          mlocations <- mapM (lift . tryEncoding . locationFromIrkFilePos (positionEncoding srv)) positions
+          mlocations <- mapM (lift . tryEncoding . locationLinkFromIrkFilePos (positionEncoding srv)) positions
           let locations = catMaybes mlocations
 
           returnResponse rid $ Array (V.fromList $ map toJSON locations)

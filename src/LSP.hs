@@ -1,6 +1,6 @@
 module LSP
   ( Position (..),
-    Location (..),
+    LocationLink (..),
     Range (..),
     MessageID (..),
     Method (..),
@@ -131,12 +131,17 @@ instance ToJSON Range where
   toJSON = genericToJSON customOptions
   toEncoding = genericToEncoding customOptions
 
-data Location = Location {lUri :: URI, lRange :: Range} deriving (Show, Generic)
+data LocationLink = Location
+  { lTargetUri :: URI,
+    lTargetRange :: Range,
+    lTargetSelectionRange :: Range
+  }
+  deriving (Show, Generic)
 
-instance FromJSON Location where
+instance FromJSON LocationLink where
   parseJSON = genericParseJSON customOptions
 
-instance ToJSON Location where
+instance ToJSON LocationLink where
   toJSON = genericToJSON customOptions
   toEncoding = genericToEncoding customOptions
 
@@ -307,7 +312,8 @@ instance ToJSON Message where
   toEncoding (MNotification n) = toEncoding n
 
 dropPrefixAndLower :: String -> String
-dropPrefixAndLower (_ : rest) = map toLower rest
+dropPrefixAndLower (_ : c : rest) = toLower c : rest
+dropPrefixAndLower [_] = ""
 dropPrefixAndLower [] = ""
 
 customOptions :: Options

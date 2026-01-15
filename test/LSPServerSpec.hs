@@ -91,7 +91,7 @@ spec = do
       case head (outbox result) of
         MResponse Response {pResult = Just (Array values)} -> do
           let first = head (toList values)
-          let range = jsonGetOr first "range" $ object []
+          let range = jsonGetOr first "targetSelectionRange" $ object []
           let start = jsonGetOr range "start" $ object []
           let line = jsonGetOr start "line" (-1) :: Int
           let col = jsonGetOr start "character" (-1) :: Int
