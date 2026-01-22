@@ -25,3 +25,5 @@ class Ident5b a where
 
 class Ident5 a => Ident8b a where
   ident11 :: a -> Int
+
+-- Some comment @type Ident12 = Int@ some comment

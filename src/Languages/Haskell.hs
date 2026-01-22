@@ -19,6 +19,7 @@ import Languages.Common
     vchar,
     vhspace,
     vhspace1,
+    vskipWhile,
     vskipWhile1,
     vstring,
   )
@@ -77,6 +78,7 @@ findSymbolDefinition symbol =
   searchForMatch $
     choice
       [ findTypeDef symbol,
+        try $ findCommentTypeDef symbol,
         findDef symbol,
         try $ findClassDef symbol,
         findClassConstrainedDef symbol,
@@ -141,4 +143,15 @@ findCPPMacroDef name = do
   pos <- getSourcePos
   vstring name
   vhspace1 <|> vchar '('
+  return pos
+
+findCommentTypeDef :: Text -> Parser SourcePos
+findCommentTypeDef name = do
+  vskipWhile (/= '@')
+  vstring "@type"
+  vhspace
+  pos <- getSourcePos
+  vstring name
+  vhspace
+  vchar '='
   return pos
