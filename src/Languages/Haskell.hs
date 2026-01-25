@@ -83,7 +83,9 @@ findSymbolDefinition symbol =
         try $ findClassDef symbol,
         findClassConstrainedDef symbol,
         findModuleDef symbol,
-        findCPPMacroDef symbol
+        findCPPMacroDef symbol,
+        try $ findRecordFieldDef '{' symbol,
+        findRecordFieldDef ',' symbol
       ]
 
 findDef :: Text -> Parser SourcePos
@@ -154,4 +156,15 @@ findCommentTypeDef name = do
   vstring name
   vhspace
   vchar '='
+  return pos
+
+findRecordFieldDef :: Char -> Text -> Parser SourcePos
+findRecordFieldDef start name = do
+  vskipWhile (/= start)
+  vchar start
+  vhspace
+  pos <- getSourcePos
+  vstring name
+  vhspace
+  vstring "::"
   return pos
