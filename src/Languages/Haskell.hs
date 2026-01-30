@@ -21,6 +21,7 @@ import Languages.Common
     vhspace1,
     vskipWhile,
     vskipWhile1,
+    vspace,
     vstring,
   )
 import System.OsPath (OsString)
@@ -93,7 +94,7 @@ findDef name = do
   vhspace
   pos <- getSourcePos
   vstring name
-  vhspace
+  vspace
   vstring "::"
   return pos
 

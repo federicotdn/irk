@@ -29,3 +29,7 @@ class Ident5 a => Ident8b a where
 -- Some comment @type Ident12 = Int@ some comment
 
 data SomeRecord = { ident13 :: Int, ident14 :: String }
+
+ident15
+    :: Int -> Int -> Int
+ident15 a b = a + b
