@@ -33,3 +33,8 @@ data SomeRecord = { ident13 :: Int, ident14 :: String }
 ident15
     :: Int -> Int -> Int
 ident15 a b = a + b
+
+newtype Ident16 = Ident17 (Foo -> Bar) -- Newtype constructor
+
+something :: String
+something = ""

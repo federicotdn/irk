@@ -105,3 +105,4 @@ spec = do
       lFindSymbolDefinition hs "ident13" hsExample `shouldBe` [IrkFilePos file 30 20]
       lFindSymbolDefinition hs "ident14" hsExample `shouldBe` [IrkFilePos file 30 36]
       lFindSymbolDefinition hs "ident15" hsExample `shouldBe` [IrkFilePos file 32 0]
+      lFindSymbolDefinition hs "Ident17" hsExample `shouldBe` [IrkFilePos file 36 18]

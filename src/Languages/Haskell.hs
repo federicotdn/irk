@@ -78,7 +78,8 @@ findSymbolDefinition :: Text -> Text -> [IrkFilePos]
 findSymbolDefinition symbol =
   searchForMatch $
     choice
-      [ findTypeDef symbol,
+      [ try $ findTypeDef symbol,
+        findNewtypeConstructor symbol,
         try $ findCommentTypeDef symbol,
         findDef symbol,
         try $ findClassDef symbol,
@@ -105,6 +106,17 @@ findTypeDef name = do
   pos <- getSourcePos
   vstring name
   vhspace1 <|> vchar '='
+  return pos
+
+findNewtypeConstructor :: Text -> Parser SourcePos
+findNewtypeConstructor name = do
+  vstring "newtype"
+  vhspace1
+  vskipWhile1 (/= '=')
+  vchar '='
+  vhspace
+  pos <- getSourcePos
+  vstring name
   return pos
 
 findClassDef :: Text -> Parser SourcePos
