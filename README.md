@@ -38,7 +38,7 @@ irk lsp
 The purpose of irk is to mostly work around some LSP servers not behaving correctly in some specific scenarios:
 - A project has been cloned but not properly set up - this sometimes trips up some LSP servers.
 - A project is too large, and makes LSP servers become sluggish when trying to find a symbol definition.
-- The LSP server is directly unable to find a symbol definition, due to the way it was declared (e.g some creative Python code).
+- The LSP server is directly unable to find a symbol definition, due to the way it was declared (e.g overly creative Python code, and/or Python code without type annotations).
 - The LSP server does not support finding symbols in vendored code (e.g. Haskell's main LSP implementation).
 
 Other reasons for developing this project include:
@@ -58,6 +58,9 @@ irk takes a lot of tricks from ripgrep, and other general ideas, in order to max
 - The three above steps are also executed in parallel via a work stealing scheme.
 - In LSP mode, the first file to be searched is the one where the definition/declaration query came from. This makes some queries essentially instant.
 - Otherwise, first only project files are searched. Afterwards, vendored files are searched. This means that the search radius is initially smaller, and then gets larger (as usually the number of lines of _vendored_ code exceed the number of _project_ lines of code for average-sized projects).
+
+## Extra
+
 - _Not implemented yet_: searching for _external_ files, e.g. system-level Python/C/etc. installed libraries (assuming source code is available).
 
 I've tested irk on the Linux and Kubernetes codebases in order to quickly find performance bottlenecks.
